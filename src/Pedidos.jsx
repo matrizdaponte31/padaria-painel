@@ -3,11 +3,12 @@ import { useState, useEffect } from 'react'
 const API = 'https://bakery-production-ea1e.up.railway.app'
 
 function Pedidos() {
-  const [pedidos, setPedidos]       = useState([])
-  const [loading, setLoading]       = useState(true)
-  const [erro, setErro]             = useState(null)
-  const [busca, setBusca]           = useState('')
-  const [filtroStatus, setFiltro]   = useState('')
+  const [pedidos, setPedidos]     = useState([])
+  const [loading, setLoading]     = useState(true)
+  const [erro, setErro]           = useState(null)
+  const [busca, setBusca]         = useState('')
+  const [filtroStatus, setFiltro] = useState('')
+  const [aviso, setAviso]         = useState(null) // id do pedido sendo avisado
 
   function carregarPedidos() {
     setLoading(true)
@@ -35,6 +36,39 @@ function Pedidos() {
     .catch(() => alert('Erro ao atualizar status'))
   }
 
+  async function avisarCliente(p) {
+    if (!p.telefone) { alert('Este pedido não tem telefone cadastrado'); return }
+    if (!confirm(`Avisar ${p.nome} que o pedido está pronto?`)) return
+    setAviso(p.id)
+    try {
+      await fetch(`${API}/api/disparar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contatos: [p.telefone],
+          mensagem: `Olá ${p.nome}! 🍞 Seu pedido está pronto para retirada!\n\n📦 *Pedido:* ${p.pedido}\n💰 *Total:* ${p.total}\n🕐 *Retirada:* ${p.retirada}\n\nObrigada pela preferência! 😊`,
+          delay: 0
+        })
+      })
+      alert(`✅ Mensagem enviada para ${p.nome}!`)
+    } catch {
+      alert('Erro ao enviar mensagem')
+    }
+    setAviso(null)
+  }
+
+  async function fecharMes() {
+    if (!confirm('Fechar o mês? Todos os pedidos entregues e cancelados serão arquivados.')) return
+    try {
+      const r = await fetch(`${API}/api/pedidos/arquivar`, { method: 'POST' })
+      const data = await r.json()
+      alert(`✅ ${data.arquivados || 0} pedidos arquivados!`)
+      carregarPedidos()
+    } catch {
+      alert('Erro ao fechar o mês')
+    }
+  }
+
   function imprimir(p) {
     const w = window.open('', '_blank', 'width=400,height=500')
     w.document.write(`
@@ -42,15 +76,12 @@ function Pedidos() {
       <style>body{font-family:sans-serif;padding:20px;font-size:14px}
       h2{margin-bottom:12px}.row{margin:6px 0}hr{margin:12px 0;border:none;border-top:1px solid #eee}</style>
       </head><body>
-      <h2>🍞 Padaria da Matriz</h2>
-      <hr/>
+      <h2>🍞 Padaria da Matriz</h2><hr/>
       <div class="row"><b>Pedido #${p.id}</b></div>
       <div class="row"><b>Cliente:</b> ${p.nome}</div>
-      <div class="row"><b>Telefone:</b> ${p.telefone || '—'}</div>
-      <hr/>
+      <div class="row"><b>Telefone:</b> ${p.telefone || '—'}</div><hr/>
       <div class="row"><b>Itens:</b> ${p.pedido}</div>
-      <div class="row"><b>Total:</b> ${p.total || '—'}</div>
-      <hr/>
+      <div class="row"><b>Total:</b> ${p.total || '—'}</div><hr/>
       <div class="row"><b>Retirada:</b> ${p.retirada || '—'}</div>
       <div class="row"><b>Status:</b> ${p.status}</div>
       <script>window.print();window.close()</script>
@@ -77,11 +108,9 @@ function Pedidos() {
     return matchBusca && matchStatus
   })
 
-  // Stats
   const total     = pedidos.length
   const pendentes = pedidos.filter(p => p.status?.toLowerCase() === 'pendente').length
   const prontos   = pedidos.filter(p => p.status?.toLowerCase() === 'pronto').length
-  const entregues = pedidos.filter(p => p.status?.toLowerCase() === 'entregue').length
 
   function somarTotal() {
     return pedidos
@@ -102,9 +131,9 @@ function Pedidos() {
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
         {[
-          { label: 'Total',     valor: total,     cor: '#2a1f12' },
-          { label: 'Pendentes', valor: pendentes,  cor: '#856404' },
-          { label: 'Prontos',   valor: prontos,    cor: '#004085' },
+          { label: 'Total',     valor: total,      cor: '#2a1f12' },
+          { label: 'Pendentes', valor: pendentes,   cor: '#856404' },
+          { label: 'Prontos',   valor: prontos,     cor: '#004085' },
           { label: 'Receita',   valor: somarTotal(), cor: '#155724' },
         ].map(s => (
           <div key={s.label} style={{ background: 'white', borderRadius: 8, padding: '16px 20px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
@@ -138,6 +167,11 @@ function Pedidos() {
         <button onClick={carregarPedidos}
           style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}>
           🔄 Atualizar
+        </button>
+
+        <button onClick={fecharMes}
+          style={{ padding: '7px 14px', borderRadius: 6, border: 'none', background: '#dc3545', color: 'white', cursor: 'pointer', marginLeft: 'auto' }}>
+          📦 Fechar Mês
         </button>
       </div>
 
@@ -186,11 +220,18 @@ function Pedidos() {
                 </td>
                 <td style={{ padding: '12px 16px', color: '#555', fontSize: 13 }}>{p.retirada || '—'}</td>
                 <td style={{ padding: '12px 16px' }}>
-                  <button onClick={() => imprimir(p)}
-                    title="Imprimir pedido"
-                    style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16 }}>
-                    🖨️
-                  </button>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <button onClick={() => avisarCliente(p)} disabled={aviso === p.id}
+                      title="Avisar cliente no WhatsApp"
+                      style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16 }}>
+                      {aviso === p.id ? '⏳' : '💬'}
+                    </button>
+                    <button onClick={() => imprimir(p)}
+                      title="Imprimir pedido"
+                      style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16 }}>
+                      🖨️
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

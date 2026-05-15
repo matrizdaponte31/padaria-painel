@@ -6,6 +6,7 @@ function Bot() {
   const [mensagens, setMensagens] = useState({})
   const [loading, setLoading]     = useState(true)
   const [salvando, setSalvando]   = useState({})
+  const [salvo, setSalvo]         = useState({})
 
   const info = {
     boas_vindas:       { label: '👋 Boas-vindas',      desc: 'Primeira mensagem ao cliente' },
@@ -27,21 +28,21 @@ function Bot() {
       .catch(() => setLoading(false))
   }, [])
 
-  function salvar(chave) {
+  async function salvar(chave) {
     setSalvando(s => ({ ...s, [chave]: true }))
-    fetch(`${API}/api/mensagens/${chave}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ texto: mensagens[chave] })
-    })
-    .then(() => setSalvando(s => ({ ...s, [chave]: false })))
-    .catch(() => {
-      alert('Erro ao salvar')
-      setSalvando(s => ({ ...s, [chave]: false }))
-    })
+    try {
+      await fetch(`${API}/api/mensagens/${chave}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texto: mensagens[chave] })
+      })
+      setSalvo(s => ({ ...s, [chave]: true }))
+      setTimeout(() => setSalvo(s => ({ ...s, [chave]: false })), 2000)
+    } catch { alert('Erro ao salvar') }
+    setSalvando(s => ({ ...s, [chave]: false }))
   }
 
-  if (loading) return <p>Carregando mensagens...</p>
+  if (loading) return <p style={{ padding: 32 }}>Carregando mensagens...</p>
 
   return (
     <div>
@@ -61,7 +62,7 @@ function Bot() {
               rows={5}
               style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', resize: 'vertical', fontSize: 13, lineHeight: 1.5 }}
             />
-            <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
               {['{nome}', '{pedido}', '{total}', '{retirada}'].map(v => (
                 <button key={v}
                   onClick={() => setMensagens(m => ({ ...m, [chave]: (m[chave] || '') + v }))}
@@ -70,8 +71,8 @@ function Bot() {
                 </button>
               ))}
               <button onClick={() => salvar(chave)} disabled={salvando[chave]}
-                style={{ marginLeft: 'auto', padding: '4px 14px', borderRadius: 6, border: 'none', background: '#c8660a', color: 'white', cursor: 'pointer', fontSize: 13 }}>
-                {salvando[chave] ? 'Salvando...' : '💾 Salvar'}
+                style={{ marginLeft: 'auto', padding: '5px 14px', borderRadius: 6, border: 'none', background: salvo[chave] ? '#28a745' : '#c8660a', color: 'white', cursor: 'pointer', fontSize: 13, transition: 'background .3s' }}>
+                {salvando[chave] ? 'Salvando...' : salvo[chave] ? '✓ Salvo!' : '💾 Salvar'}
               </button>
             </div>
           </div>
