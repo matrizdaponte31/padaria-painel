@@ -39,11 +39,10 @@ function Pedidos() {
     entregue:  { background: '#d4edda', color: '#155724' },
     cancelado: { background: '#f8d7da', color: '#721c24' },
     separado:  { background: '#ffe5cc', color: '#c8660a' },
-  }
-
-  function fmtMoney(v) {
-    const n = parseFloat(String(v).replace(',', '.')) || 0
-    return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+    Pendente:  { background: '#fff3cd', color: '#856404' },
+    Pronto:    { background: '#cce5ff', color: '#004085' },
+    Entregue:  { background: '#d4edda', color: '#155724' },
+    Cancelado: { background: '#f8d7da', color: '#721c24' },
   }
 
   if (loading) return <p>Carregando pedidos...</p>
@@ -83,7 +82,7 @@ function Pedidos() {
               </td>
               <td style={{ padding: '12px 16px', color: '#555', maxWidth: 200 }}>{p.pedido}</td>
               <td style={{ padding: '12px 16px', fontWeight: 600 }}>
-                {fmtMoney(p.total)}
+                {p.total || '—'}
               </td>
               <td style={{ padding: '12px 16px' }}>
                 <select
