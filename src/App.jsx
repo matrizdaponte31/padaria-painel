@@ -28,28 +28,33 @@ function App() {
   }
 
   return (
-    <div style={{ display: 'flex', height: '100vh', fontFamily: 'sans-serif' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'sans-serif' }}>
 
-      {/* Sidebar */}
-      <div style={{ width: 200, background: '#1a1a1a', color: 'white', padding: 20, flexShrink: 0 }}>
-        <h2 style={{ fontSize: 16, marginBottom: 24 }}>🍞 Padaria da Matriz</h2>
+      {/* Topbar */}
+      <div style={{ background: '#1a1a1a', color: 'white', padding: '0 24px', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, height: 56 }}>
+        <span style={{ fontSize: 20, marginRight: 8 }}>🍞</span>
+        <span style={{ fontWeight: 700, fontSize: 15, marginRight: 24 }}>Padaria da Matriz</span>
         {abas.map(aba => (
-          <div key={aba.id}
+          <button key={aba.id}
             onClick={() => setAbaAtiva(aba.id)}
             style={{
-              padding: '10px 12px',
-              marginBottom: 4,
+              padding: '6px 14px',
               borderRadius: 6,
+              border: 'none',
               cursor: 'pointer',
+              fontSize: 13,
+              fontWeight: 500,
               background: abaAtiva === aba.id ? '#c8660a' : 'transparent',
+              color: abaAtiva === aba.id ? 'white' : 'rgba(255,255,255,0.6)',
+              transition: 'all .15s',
             }}>
             {aba.label}
-          </div>
+          </button>
         ))}
       </div>
 
       {/* Conteúdo */}
-      <div style={{ flex: 1, padding: 32, background: '#faf7f2', overflowY: 'auto' }}>
+      <div style={{ flex: 1, padding: 24, background: '#faf7f2', overflowY: 'auto' }}>
         {renderConteudo()}
       </div>
 
