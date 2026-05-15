@@ -41,6 +41,11 @@ function Pedidos() {
     separado:  { background: '#ffe5cc', color: '#c8660a' },
   }
 
+  function fmtMoney(v) {
+    const n = parseFloat(String(v).replace(',', '.')) || 0
+    return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  }
+
   if (loading) return <p>Carregando pedidos...</p>
   if (erro)    return <p style={{ color: 'red' }}>{erro}</p>
 
@@ -66,6 +71,9 @@ function Pedidos() {
           </tr>
         </thead>
         <tbody>
+          {pedidos.length === 0 && (
+            <tr><td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#888' }}>Nenhum pedido encontrado</td></tr>
+          )}
           {pedidos.map(p => (
             <tr key={p.id} style={{ borderTop: '1px solid #eee' }}>
               <td style={{ padding: '12px 16px', color: '#999' }}>{p.id}</td>
@@ -75,7 +83,7 @@ function Pedidos() {
               </td>
               <td style={{ padding: '12px 16px', color: '#555', maxWidth: 200 }}>{p.pedido}</td>
               <td style={{ padding: '12px 16px', fontWeight: 600 }}>
-                R$ {Number(p.total || 0).toFixed(2)}
+                {fmtMoney(p.total)}
               </td>
               <td style={{ padding: '12px 16px' }}>
                 <select
