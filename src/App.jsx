@@ -1,5 +1,10 @@
 import { useState } from 'react'
-import Pedidos from './Pedidos'
+import Pedidos   from './Pedidos'
+import Contatos  from './Contatos'
+import Templates from './Templates'
+import Disparar  from './Disparar'
+import Bot       from './Bot'
+import Config    from './Config'
 
 function App() {
   const [abaAtiva, setAbaAtiva] = useState('pedidos')
@@ -14,15 +19,19 @@ function App() {
   ]
 
   function renderConteudo() {
-    if (abaAtiva === 'pedidos') return <Pedidos />
-    return <p style={{ color: '#888' }}>Em construção...</p>
+    if (abaAtiva === 'pedidos')   return <Pedidos />
+    if (abaAtiva === 'contatos')  return <Contatos />
+    if (abaAtiva === 'templates') return <Templates />
+    if (abaAtiva === 'disparar')  return <Disparar />
+    if (abaAtiva === 'bot')       return <Bot />
+    if (abaAtiva === 'config')    return <Config />
   }
 
   return (
     <div style={{ display: 'flex', height: '100vh', fontFamily: 'sans-serif' }}>
 
       {/* Sidebar */}
-      <div style={{ width: 200, background: '#1a1a1a', color: 'white', padding: 20 }}>
+      <div style={{ width: 200, background: '#1a1a1a', color: 'white', padding: 20, flexShrink: 0 }}>
         <h2 style={{ fontSize: 16, marginBottom: 24 }}>🍞 Padaria da Matriz</h2>
         {abas.map(aba => (
           <div key={aba.id}
@@ -40,7 +49,7 @@ function App() {
       </div>
 
       {/* Conteúdo */}
-      <div style={{ flex: 1, padding: 32, background: '#faf7f2' }}>
+      <div style={{ flex: 1, padding: 32, background: '#faf7f2', overflowY: 'auto' }}>
         {renderConteudo()}
       </div>
 
