@@ -2,29 +2,6 @@ import { useState, useEffect } from 'react'
 
 const API = 'https://bakery-production-ea1e.up.railway.app'
 
-const PRODUTOS = [
-  { num: 1,  nome: 'Pão de Trança',           preco: 16, categoria: 'Pães' },
-  { num: 2,  nome: 'Pão de Milho',            preco: 15, categoria: 'Pães' },
-  { num: 3,  nome: 'Cuca de Banana P',        preco: 18, categoria: 'Cucas Frutadas' },
-  { num: 4,  nome: 'Cuca de Banana M',        preco: 24, categoria: 'Cucas Frutadas' },
-  { num: 5,  nome: 'Cuca de Abacaxi',         preco: 20, categoria: 'Cucas Frutadas' },
-  { num: 6,  nome: 'Cuca de Goiabada',        preco: 20, categoria: 'Cucas Frutadas' },
-  { num: 7,  nome: 'Cuca de Uva',             preco: 20, categoria: 'Cucas Frutadas' },
-  { num: 8,  nome: 'Cuca de Coco',            preco: 24, categoria: 'Cucas Frutadas' },
-  { num: 9,  nome: 'Pudim P',                 preco: 18, categoria: 'Pudins' },
-  { num: 10, nome: 'Pudim M',                 preco: 25, categoria: 'Pudins' },
-  { num: 11, nome: 'Cuca Farofa M',           preco: 20, categoria: 'Cucas Farofa' },
-  { num: 12, nome: 'Cuca Farofa G',           preco: 35, categoria: 'Cucas Farofa' },
-  { num: 13, nome: 'Bolo Manteiga Simples',   preco: 26, categoria: 'Bolos' },
-  { num: 14, nome: 'Bolo Manteiga Enfeitado', preco: 35, categoria: 'Bolos' },
-  { num: 15, nome: 'Bolo Manteiga Recheado',  preco: 65, categoria: 'Bolos' },
-  { num: 16, nome: 'Rocambole de Amendoim',   preco: 23, categoria: 'Rocamboles' },
-  { num: 17, nome: 'Rocambole de Coco',       preco: 23, categoria: 'Rocamboles' },
-  { num: 18, nome: 'Rocambole de Brigadeiro', preco: 23, categoria: 'Rocamboles' },
-  { num: 19, nome: 'Torta de Banana',         preco: 35, categoria: 'Tortas' },
-  { num: 20, nome: 'Torta de Ricota',         preco: 35, categoria: 'Tortas' },
-]
-
 const HORARIOS = ['08h-10h', '10h-12h', '12h-14h', '14h-16h', '16h-18h', '18h-19h']
 const DIAS = ['Sexta-feira', 'Sábado']
 
@@ -114,25 +91,25 @@ function ModalHistorico({ onClose }) {
   )
 }
 
-// ── Seletor de Produtos do Catálogo ──────────────────────
-function SeletorProdutos({ carrinho, setCarrinho }) {
-  const categorias = [...new Set(PRODUTOS.map(p => p.categoria))]
+// ── Seletor de Produtos ──────────────────────────────────
+function SeletorProdutos({ produtos, carrinho, setCarrinho }) {
+  const categorias = [...new Set(produtos.map(p => p.categoria).filter(Boolean))]
 
   function setQtd(produto, qtd) {
     const q = parseInt(qtd) || 0
     if (q <= 0) {
-      setCarrinho(c => c.filter(i => i.num !== produto.num))
+      setCarrinho(c => c.filter(i => i.id !== produto.id))
     } else {
       setCarrinho(c => {
-        const existe = c.find(i => i.num === produto.num)
-        if (existe) return c.map(i => i.num === produto.num ? { ...i, qtd: q, subtotal: produto.preco * q } : i)
-        return [...c, { ...produto, qtd: q, subtotal: produto.preco * q }]
+        const existe = c.find(i => i.id === produto.id)
+        if (existe) return c.map(i => i.id === produto.id ? { ...i, qtd: q, subtotal: Number(produto.preco) * q } : i)
+        return [...c, { ...produto, qtd: q, subtotal: Number(produto.preco) * q }]
       })
     }
   }
 
-  function getQtd(num) {
-    return carrinho.find(i => i.num === num)?.qtd || 0
+  function getQtd(id) {
+    return carrinho.find(i => i.id === id)?.qtd || 0
   }
 
   return (
@@ -142,14 +119,14 @@ function SeletorProdutos({ carrinho, setCarrinho }) {
           <div style={{ background: '#f0ece4', padding: '6px 12px', fontSize: 11, fontWeight: 700, color: '#c8660a', textTransform: 'uppercase', letterSpacing: '.05em' }}>
             {cat}
           </div>
-          {PRODUTOS.filter(p => p.categoria === cat).map(p => (
-            <div key={p.num} style={{ display: 'flex', alignItems: 'center', padding: '7px 12px', borderBottom: '1px solid #f5f5f5', gap: 8 }}>
-              <span style={{ fontSize: 12, color: '#999', width: 20 }}>{p.num}</span>
+          {produtos.filter(p => p.categoria === cat && p.disponivel !== false).map((p, i) => (
+            <div key={p.id} style={{ display: 'flex', alignItems: 'center', padding: '7px 12px', borderBottom: '1px solid #f5f5f5', gap: 8 }}>
+              <span style={{ fontSize: 12, color: '#999', width: 20 }}>{p.ordem || i + 1}</span>
               <span style={{ flex: 1, fontSize: 13 }}>{p.nome}</span>
-              <span style={{ fontSize: 12, color: '#888', width: 60 }}>R$ {p.preco},00</span>
+              <span style={{ fontSize: 12, color: '#888', width: 70 }}>R$ {Number(p.preco).toFixed(2).replace('.', ',')}</span>
               <input
                 type="number" min="0" max="99"
-                value={getQtd(p.num) || ''}
+                value={getQtd(p.id) || ''}
                 onChange={e => setQtd(p, e.target.value)}
                 placeholder="0"
                 style={{ width: 48, padding: '3px 6px', borderRadius: 4, border: '1px solid #ddd', fontSize: 13, textAlign: 'center' }}
@@ -163,7 +140,7 @@ function SeletorProdutos({ carrinho, setCarrinho }) {
 }
 
 // ── Modal Pedido Manual ──────────────────────────────────
-function ModalPedidoManual({ onClose, onSalvo }) {
+function ModalPedidoManual({ produtos, onClose, onSalvo }) {
   const [nome, setNome]         = useState('')
   const [telefone, setTelefone] = useState('')
   const [dia, setDia]           = useState('Sexta-feira')
@@ -212,14 +189,13 @@ function ModalPedidoManual({ onClose, onSalvo }) {
 
         <div style={{ marginBottom: 12 }}>
           <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 6, color: '#555' }}>Produtos *</label>
-          <SeletorProdutos carrinho={carrinho} setCarrinho={setCarrinho} />
+          <SeletorProdutos produtos={produtos} carrinho={carrinho} setCarrinho={setCarrinho} />
         </div>
 
-        {/* Resumo carrinho */}
         {carrinho.length > 0 && (
           <div style={{ background: '#faf7f2', borderRadius: 6, padding: '10px 12px', marginBottom: 12, fontSize: 13 }}>
             {carrinho.map(i => (
-              <div key={i.num} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+              <div key={i.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
                 <span>{i.nome} x{i.qtd}</span>
                 <span style={{ fontWeight: 600 }}>R$ {i.subtotal},00</span>
               </div>
@@ -296,8 +272,7 @@ function ModalEditarPedido({ pedido, onClose, onSalvo }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)
       })
-      onSalvo()
-      onClose()
+      onSalvo(); onClose()
     } catch { alert('Erro ao salvar') }
     setSalvando(false)
   }
@@ -306,7 +281,6 @@ function ModalEditarPedido({ pedido, onClose, onSalvo }) {
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
       <div style={{ background: 'white', borderRadius: 10, padding: 24, width: 500, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
         <h3 style={{ marginBottom: 16 }}>✏️ Editar Pedido #{pedido.id}</h3>
-
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
           <div>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Nome</label>
@@ -319,13 +293,11 @@ function ModalEditarPedido({ pedido, onClose, onSalvo }) {
               style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13 }} />
           </div>
         </div>
-
         <div style={{ marginBottom: 12 }}>
           <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Pedido</label>
           <textarea value={form.pedido} onChange={set('pedido')} rows={3}
             style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13, resize: 'vertical' }} />
         </div>
-
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
           <div>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Total</label>
@@ -334,11 +306,10 @@ function ModalEditarPedido({ pedido, onClose, onSalvo }) {
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Retirada</label>
-            <input value={form.retirada} onChange={set('retirada')} placeholder="Sexta-feira das 10h-12h"
+            <input value={form.retirada} onChange={set('retirada')}
               style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13 }} />
           </div>
         </div>
-
         <div style={{ marginBottom: 20 }}>
           <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Status</label>
           <select value={form.status} onChange={set('status')}
@@ -350,7 +321,6 @@ function ModalEditarPedido({ pedido, onClose, onSalvo }) {
             <option value="cancelado">Cancelado</option>
           </select>
         </div>
-
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={salvar} disabled={salvando}
             style={{ flex: 1, padding: '10px', borderRadius: 6, border: 'none', background: '#c8660a', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
@@ -369,6 +339,7 @@ function ModalEditarPedido({ pedido, onClose, onSalvo }) {
 // ── Página Principal ─────────────────────────────────────
 function Pedidos() {
   const [pedidos, setPedidos]        = useState([])
+  const [produtos, setProdutos]      = useState([])
   const [loading, setLoading]        = useState(true)
   const [erro, setErro]              = useState(null)
   const [busca, setBusca]            = useState('')
@@ -386,7 +357,14 @@ function Pedidos() {
       .catch(() => { setErro('Erro ao conectar com o servidor'); setLoading(false) })
   }
 
-  useEffect(() => { carregarPedidos() }, [])
+  useEffect(() => {
+    carregarPedidos()
+    // Carrega produtos do cardápio
+    fetch(`${API}/api/cardapio`)
+      .then(r => r.json())
+      .then(d => setProdutos(d || []))
+      .catch(() => {})
+  }, [])
 
   function mudarStatus(id, novoStatus) {
     fetch(`${API}/api/pedidos/${id}/status`, {
@@ -573,7 +551,7 @@ function Pedidos() {
       </div>
 
       {verHistorico && <ModalHistorico onClose={() => setHistorico(false)} />}
-      {verManual    && <ModalPedidoManual onClose={() => setManual(false)} onSalvo={carregarPedidos} />}
+      {verManual    && <ModalPedidoManual produtos={produtos} onClose={() => setManual(false)} onSalvo={carregarPedidos} />}
       {editando     && <ModalEditarPedido pedido={editando} onClose={() => setEditando(null)} onSalvo={carregarPedidos} />}
     </div>
   )
