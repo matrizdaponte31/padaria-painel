@@ -2,6 +2,45 @@ import { useState, useEffect } from 'react'
 
 const API = 'https://bakery-production-ea1e.up.railway.app'
 
+const PRODUTOS = [
+  { num: 1,  nome: 'Pão de Trança',           preco: 16, categoria: 'Pães' },
+  { num: 2,  nome: 'Pão de Milho',            preco: 15, categoria: 'Pães' },
+  { num: 3,  nome: 'Cuca de Banana P',        preco: 18, categoria: 'Cucas Frutadas' },
+  { num: 4,  nome: 'Cuca de Banana M',        preco: 24, categoria: 'Cucas Frutadas' },
+  { num: 5,  nome: 'Cuca de Abacaxi',         preco: 20, categoria: 'Cucas Frutadas' },
+  { num: 6,  nome: 'Cuca de Goiabada',        preco: 20, categoria: 'Cucas Frutadas' },
+  { num: 7,  nome: 'Cuca de Uva',             preco: 20, categoria: 'Cucas Frutadas' },
+  { num: 8,  nome: 'Cuca de Coco',            preco: 24, categoria: 'Cucas Frutadas' },
+  { num: 9,  nome: 'Pudim P',                 preco: 18, categoria: 'Pudins' },
+  { num: 10, nome: 'Pudim M',                 preco: 25, categoria: 'Pudins' },
+  { num: 11, nome: 'Cuca Farofa M',           preco: 20, categoria: 'Cucas Farofa' },
+  { num: 12, nome: 'Cuca Farofa G',           preco: 35, categoria: 'Cucas Farofa' },
+  { num: 13, nome: 'Bolo Manteiga Simples',   preco: 26, categoria: 'Bolos' },
+  { num: 14, nome: 'Bolo Manteiga Enfeitado', preco: 35, categoria: 'Bolos' },
+  { num: 15, nome: 'Bolo Manteiga Recheado',  preco: 65, categoria: 'Bolos' },
+  { num: 16, nome: 'Rocambole de Amendoim',   preco: 23, categoria: 'Rocamboles' },
+  { num: 17, nome: 'Rocambole de Coco',       preco: 23, categoria: 'Rocamboles' },
+  { num: 18, nome: 'Rocambole de Brigadeiro', preco: 23, categoria: 'Rocamboles' },
+  { num: 19, nome: 'Torta de Banana',         preco: 35, categoria: 'Tortas' },
+  { num: 20, nome: 'Torta de Ricota',         preco: 35, categoria: 'Tortas' },
+]
+
+const HORARIOS = ['08h-10h', '10h-12h', '12h-14h', '14h-16h', '16h-18h', '18h-19h']
+const DIAS = ['Sexta-feira', 'Sábado']
+
+const corStatus = {
+  pendente:  { background: '#fff3cd', color: '#856404' },
+  pronto:    { background: '#cce5ff', color: '#004085' },
+  entregue:  { background: '#d4edda', color: '#155724' },
+  cancelado: { background: '#f8d7da', color: '#721c24' },
+  separado:  { background: '#ffe5cc', color: '#c8660a' },
+  Pendente:  { background: '#fff3cd', color: '#856404' },
+  Pronto:    { background: '#cce5ff', color: '#004085' },
+  Entregue:  { background: '#d4edda', color: '#155724' },
+  Cancelado: { background: '#f8d7da', color: '#721c24' },
+}
+
+// ── Modal Histórico ──────────────────────────────────────
 function ModalHistorico({ onClose }) {
   const [meses, setMeses]     = useState([])
   const [sel, setSel]         = useState(null)
@@ -9,15 +48,11 @@ function ModalHistorico({ onClose }) {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    fetch(`${API}/api/historico`)
-      .then(r => r.json())
-      .then(d => setMeses(d.meses || d || []))
-      .catch(() => {})
+    fetch(`${API}/api/historico`).then(r => r.json()).then(d => setMeses(d.meses || d || [])).catch(() => {})
   }, [])
 
   async function carregarMes(m) {
-    setSel(m)
-    setLoading(true)
+    setSel(m); setLoading(true)
     try {
       const r = await fetch(`${API}/api/historico/${m.mes}/${m.ano}`)
       const d = await r.json()
@@ -47,24 +82,21 @@ function ModalHistorico({ onClose }) {
           <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
             {!sel && <p style={{ color: '#aaa', fontSize: 13 }}>← Selecione um mês</p>}
             {loading && <p style={{ color: '#888', fontSize: 13 }}>Carregando...</p>}
-            {!loading && sel && dados.length === 0 && <p style={{ color: '#aaa', fontSize: 13 }}>Nenhum pedido neste mês.</p>}
             {!loading && dados.length > 0 && (
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ background: '#f0ece4' }}>
-                    <th style={{ padding: '8px 12px', textAlign: 'left' }}>#</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'left' }}>Cliente</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'left' }}>Pedido</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'left' }}>Total</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'left' }}>Status</th>
-                  </tr>
-                </thead>
+                <thead><tr style={{ background: '#f0ece4' }}>
+                  <th style={{ padding: '8px 12px', textAlign: 'left' }}>#</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'left' }}>Cliente</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'left' }}>Pedido</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'left' }}>Total</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'left' }}>Status</th>
+                </tr></thead>
                 <tbody>
                   {dados.map(p => (
                     <tr key={p.id} style={{ borderTop: '1px solid #eee' }}>
                       <td style={{ padding: '8px 12px', color: '#999' }}>{p.id}</td>
                       <td style={{ padding: '8px 12px', fontWeight: 500 }}>{p.nome}</td>
-                      <td style={{ padding: '8px 12px', color: '#555', maxWidth: 200 }}>{p.pedido}</td>
+                      <td style={{ padding: '8px 12px', color: '#555' }}>{p.pedido}</td>
                       <td style={{ padding: '8px 12px', fontWeight: 600 }}>{p.total || '—'}</td>
                       <td style={{ padding: '8px 12px' }}>{p.status}</td>
                     </tr>
@@ -82,19 +114,77 @@ function ModalHistorico({ onClose }) {
   )
 }
 
+// ── Seletor de Produtos do Catálogo ──────────────────────
+function SeletorProdutos({ carrinho, setCarrinho }) {
+  const categorias = [...new Set(PRODUTOS.map(p => p.categoria))]
+
+  function setQtd(produto, qtd) {
+    const q = parseInt(qtd) || 0
+    if (q <= 0) {
+      setCarrinho(c => c.filter(i => i.num !== produto.num))
+    } else {
+      setCarrinho(c => {
+        const existe = c.find(i => i.num === produto.num)
+        if (existe) return c.map(i => i.num === produto.num ? { ...i, qtd: q, subtotal: produto.preco * q } : i)
+        return [...c, { ...produto, qtd: q, subtotal: produto.preco * q }]
+      })
+    }
+  }
+
+  function getQtd(num) {
+    return carrinho.find(i => i.num === num)?.qtd || 0
+  }
+
+  return (
+    <div style={{ maxHeight: 320, overflowY: 'auto', border: '1px solid #eee', borderRadius: 6 }}>
+      {categorias.map(cat => (
+        <div key={cat}>
+          <div style={{ background: '#f0ece4', padding: '6px 12px', fontSize: 11, fontWeight: 700, color: '#c8660a', textTransform: 'uppercase', letterSpacing: '.05em' }}>
+            {cat}
+          </div>
+          {PRODUTOS.filter(p => p.categoria === cat).map(p => (
+            <div key={p.num} style={{ display: 'flex', alignItems: 'center', padding: '7px 12px', borderBottom: '1px solid #f5f5f5', gap: 8 }}>
+              <span style={{ fontSize: 12, color: '#999', width: 20 }}>{p.num}</span>
+              <span style={{ flex: 1, fontSize: 13 }}>{p.nome}</span>
+              <span style={{ fontSize: 12, color: '#888', width: 60 }}>R$ {p.preco},00</span>
+              <input
+                type="number" min="0" max="99"
+                value={getQtd(p.num) || ''}
+                onChange={e => setQtd(p, e.target.value)}
+                placeholder="0"
+                style={{ width: 48, padding: '3px 6px', borderRadius: 4, border: '1px solid #ddd', fontSize: 13, textAlign: 'center' }}
+              />
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ── Modal Pedido Manual ──────────────────────────────────
 function ModalPedidoManual({ onClose, onSalvo }) {
-  const [form, setForm] = useState({ nome: '', telefone: '', pedido: '', total: '', retirada: '', status: 'pendente' })
+  const [nome, setNome]         = useState('')
+  const [telefone, setTelefone] = useState('')
+  const [dia, setDia]           = useState('Sexta-feira')
+  const [horario, setHorario]   = useState('08h-10h')
+  const [status, setStatus]     = useState('pendente')
+  const [carrinho, setCarrinho] = useState([])
   const [salvando, setSalvando] = useState(false)
-  const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }))
+
+  const total = carrinho.reduce((s, i) => s + i.subtotal, 0)
+  const retirada = `${dia} das ${horario}`
+  const pedidoTexto = carrinho.map(i => `${i.nome} x${i.qtd}`).join(', ')
 
   async function salvar() {
-    if (!form.nome || !form.pedido) { alert('Nome e pedido são obrigatórios'); return }
+    if (!nome) { alert('Nome é obrigatório'); return }
+    if (carrinho.length === 0) { alert('Adicione pelo menos um produto'); return }
     setSalvando(true)
     try {
       await fetch(`${API}/api/pedidos/manual`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
+        body: JSON.stringify({ nome, telefone, pedido: pedidoTexto, total: `R$ ${total},00`, retirada, status })
       })
       onSalvo()
       onClose()
@@ -104,26 +194,136 @@ function ModalPedidoManual({ onClose, onSalvo }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-      <div style={{ background: 'white', borderRadius: 10, padding: 28, width: 480, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
-        <h3 style={{ marginBottom: 20 }}>➕ Pedido Manual</h3>
+      <div style={{ background: 'white', borderRadius: 10, padding: 24, width: 540, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
+        <h3 style={{ marginBottom: 16 }}>➕ Pedido Manual</h3>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
           <div>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Nome *</label>
-            <input value={form.nome} onChange={set('nome')} placeholder="Maria Silva"
+            <input value={nome} onChange={e => setNome(e.target.value)} placeholder="Maria Silva"
               style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13 }} />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Telefone</label>
-            <input value={form.telefone} onChange={set('telefone')} placeholder="5548999887766"
+            <input value={telefone} onChange={e => setTelefone(e.target.value)} placeholder="5548999887766"
               style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13 }} />
           </div>
         </div>
 
         <div style={{ marginBottom: 12 }}>
-          <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Pedido *</label>
-          <textarea value={form.pedido} onChange={set('pedido')} placeholder="Cuca Farofa G x1, Pão de Trança x2..."
-            rows={3} style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13, resize: 'vertical' }} />
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 6, color: '#555' }}>Produtos *</label>
+          <SeletorProdutos carrinho={carrinho} setCarrinho={setCarrinho} />
+        </div>
+
+        {/* Resumo carrinho */}
+        {carrinho.length > 0 && (
+          <div style={{ background: '#faf7f2', borderRadius: 6, padding: '10px 12px', marginBottom: 12, fontSize: 13 }}>
+            {carrinho.map(i => (
+              <div key={i.num} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                <span>{i.nome} x{i.qtd}</span>
+                <span style={{ fontWeight: 600 }}>R$ {i.subtotal},00</span>
+              </div>
+            ))}
+            <div style={{ borderTop: '1px solid #e0d8cc', marginTop: 6, paddingTop: 6, display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
+              <span>Total</span>
+              <span style={{ color: '#c8660a' }}>R$ {total},00</span>
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Dia</label>
+            <select value={dia} onChange={e => setDia(e.target.value)}
+              style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13 }}>
+              {DIAS.map(d => <option key={d}>{d}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Horário</label>
+            <select value={horario} onChange={e => setHorario(e.target.value)}
+              style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13 }}>
+              {HORARIOS.map(h => <option key={h}>{h}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Status</label>
+          <select value={status} onChange={e => setStatus(e.target.value)}
+            style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13 }}>
+            <option value="pendente">Pendente</option>
+            <option value="separado">Separado</option>
+            <option value="pronto">Pronto</option>
+            <option value="entregue">Entregue</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+        </div>
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={salvar} disabled={salvando}
+            style={{ flex: 1, padding: '10px', borderRadius: 6, border: 'none', background: '#c8660a', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
+            {salvando ? 'Salvando...' : `💾 Salvar — R$ ${total},00`}
+          </button>
+          <button onClick={onClose}
+            style={{ padding: '10px 16px', borderRadius: 6, border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}>
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Modal Editar Pedido ──────────────────────────────────
+function ModalEditarPedido({ pedido, onClose, onSalvo }) {
+  const [form, setForm] = useState({
+    nome:     pedido.nome     || '',
+    telefone: pedido.telefone || '',
+    pedido:   pedido.pedido   || '',
+    total:    pedido.total    || '',
+    retirada: pedido.retirada || '',
+    status:   pedido.status?.toLowerCase() || 'pendente',
+  })
+  const [salvando, setSalvando] = useState(false)
+  const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }))
+
+  async function salvar() {
+    setSalvando(true)
+    try {
+      await fetch(`${API}/api/pedidos/${pedido.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form)
+      })
+      onSalvo()
+      onClose()
+    } catch { alert('Erro ao salvar') }
+    setSalvando(false)
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+      <div style={{ background: 'white', borderRadius: 10, padding: 24, width: 500, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
+        <h3 style={{ marginBottom: 16 }}>✏️ Editar Pedido #{pedido.id}</h3>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Nome</label>
+            <input value={form.nome} onChange={set('nome')}
+              style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13 }} />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Telefone</label>
+            <input value={form.telefone} onChange={set('telefone')}
+              style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13 }} />
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Pedido</label>
+          <textarea value={form.pedido} onChange={set('pedido')} rows={3}
+            style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13, resize: 'vertical' }} />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
@@ -154,7 +354,7 @@ function ModalPedidoManual({ onClose, onSalvo }) {
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={salvar} disabled={salvando}
             style={{ flex: 1, padding: '10px', borderRadius: 6, border: 'none', background: '#c8660a', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
-            {salvando ? 'Salvando...' : '💾 Salvar Pedido'}
+            {salvando ? 'Salvando...' : '💾 Salvar'}
           </button>
           <button onClick={onClose}
             style={{ padding: '10px 16px', borderRadius: 6, border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}>
@@ -166,28 +366,24 @@ function ModalPedidoManual({ onClose, onSalvo }) {
   )
 }
 
+// ── Página Principal ─────────────────────────────────────
 function Pedidos() {
-  const [pedidos, setPedidos]         = useState([])
-  const [loading, setLoading]         = useState(true)
-  const [erro, setErro]               = useState(null)
-  const [busca, setBusca]             = useState('')
-  const [filtroStatus, setFiltro]     = useState('')
-  const [aviso, setAviso]             = useState(null)
-  const [verHistorico, setHistorico]  = useState(false)
-  const [verManual, setManual]        = useState(false)
+  const [pedidos, setPedidos]        = useState([])
+  const [loading, setLoading]        = useState(true)
+  const [erro, setErro]              = useState(null)
+  const [busca, setBusca]            = useState('')
+  const [filtroStatus, setFiltro]    = useState('')
+  const [aviso, setAviso]            = useState(null)
+  const [verHistorico, setHistorico] = useState(false)
+  const [verManual, setManual]       = useState(false)
+  const [editando, setEditando]      = useState(null)
 
   function carregarPedidos() {
     setLoading(true)
     fetch(`${API}/api/pedidos`)
       .then(r => r.json())
-      .then(data => {
-        setPedidos(data.pedidos || data || [])
-        setLoading(false)
-      })
-      .catch(() => {
-        setErro('Erro ao conectar com o servidor')
-        setLoading(false)
-      })
+      .then(data => { setPedidos(data.pedidos || data || []); setLoading(false) })
+      .catch(() => { setErro('Erro ao conectar com o servidor'); setLoading(false) })
   }
 
   useEffect(() => { carregarPedidos() }, [])
@@ -197,9 +393,7 @@ function Pedidos() {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: novoStatus })
-    })
-    .then(() => carregarPedidos())
-    .catch(() => alert('Erro ao atualizar status'))
+    }).then(() => carregarPedidos()).catch(() => alert('Erro ao atualizar status'))
   }
 
   async function avisarCliente(p) {
@@ -222,7 +416,7 @@ function Pedidos() {
   }
 
   async function fecharMes() {
-    if (!confirm('Fechar o mês? Todos os pedidos entregues e cancelados serão arquivados.')) return
+    if (!confirm('Fechar o mês? Todos os pedidos serão arquivados.')) return
     try {
       const r = await fetch(`${API}/api/pedidos/arquivar`, { method: 'POST' })
       const data = await r.json()
@@ -233,10 +427,8 @@ function Pedidos() {
 
   function imprimir(p) {
     const w = window.open('', '_blank', 'width=400,height=500')
-    w.document.write(`
-      <html><head><title>Pedido #${p.id}</title>
-      <style>body{font-family:sans-serif;padding:20px;font-size:14px}
-      h2{margin-bottom:12px}.row{margin:6px 0}hr{margin:12px 0;border:none;border-top:1px solid #eee}</style>
+    w.document.write(`<html><head><title>Pedido #${p.id}</title>
+      <style>body{font-family:sans-serif;padding:20px;font-size:14px}h2{margin-bottom:12px}.row{margin:6px 0}hr{margin:12px 0;border:none;border-top:1px solid #eee}</style>
       </head><body>
       <h2>🍞 Padaria da Matriz</h2><hr/>
       <div class="row"><b>Pedido #${p.id}</b></div>
@@ -246,21 +438,8 @@ function Pedidos() {
       <div class="row"><b>Total:</b> ${p.total || '—'}</div><hr/>
       <div class="row"><b>Retirada:</b> ${p.retirada || '—'}</div>
       <div class="row"><b>Status:</b> ${p.status}</div>
-      <script>window.print();window.close()</script>
-      </body></html>`)
+      <script>window.print();window.close()</script></body></html>`)
     w.document.close()
-  }
-
-  const corStatus = {
-    pendente:  { background: '#fff3cd', color: '#856404' },
-    pronto:    { background: '#cce5ff', color: '#004085' },
-    entregue:  { background: '#d4edda', color: '#155724' },
-    cancelado: { background: '#f8d7da', color: '#721c24' },
-    separado:  { background: '#ffe5cc', color: '#c8660a' },
-    Pendente:  { background: '#fff3cd', color: '#856404' },
-    Pronto:    { background: '#cce5ff', color: '#004085' },
-    Entregue:  { background: '#d4edda', color: '#155724' },
-    Cancelado: { background: '#f8d7da', color: '#721c24' },
   }
 
   const filtrados = pedidos.filter(p => {
@@ -289,7 +468,6 @@ function Pedidos() {
 
   return (
     <div>
-
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
         {[
@@ -308,14 +486,9 @@ function Pedidos() {
       {/* Toolbar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         <h2>📋 Pedidos ({filtrados.length})</h2>
-
-        <input
-          placeholder="🔍 Buscar nome, pedido, telefone..."
-          value={busca}
+        <input placeholder="🔍 Buscar nome, pedido, telefone..." value={busca}
           onChange={e => setBusca(e.target.value)}
-          style={{ padding: '7px 12px', borderRadius: 6, border: '1px solid #ddd', width: 240 }}
-        />
-
+          style={{ padding: '7px 12px', borderRadius: 6, border: '1px solid #ddd', width: 240 }} />
         <select value={filtroStatus} onChange={e => setFiltro(e.target.value)}
           style={{ padding: '7px 12px', borderRadius: 6, border: '1px solid #ddd' }}>
           <option value="">Todos os status</option>
@@ -325,22 +498,18 @@ function Pedidos() {
           <option value="entregue">Entregue</option>
           <option value="cancelado">Cancelado</option>
         </select>
-
         <button onClick={carregarPedidos}
           style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}>
           🔄 Atualizar
         </button>
-
         <button onClick={() => setHistorico(true)}
           style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}>
           📦 Histórico
         </button>
-
         <button onClick={() => setManual(true)}
           style={{ padding: '7px 14px', borderRadius: 6, border: 'none', background: '#c8660a', color: 'white', cursor: 'pointer' }}>
           ➕ Pedido Manual
         </button>
-
         <button onClick={fecharMes}
           style={{ padding: '7px 14px', borderRadius: 6, border: 'none', background: '#dc3545', color: 'white', cursor: 'pointer', marginLeft: 'auto' }}>
           📦 Fechar Mês
@@ -375,9 +544,7 @@ function Pedidos() {
                 <td style={{ padding: '12px 16px', color: '#555', maxWidth: 220 }}>{p.pedido}</td>
                 <td style={{ padding: '12px 16px', fontWeight: 600 }}>{p.total || '—'}</td>
                 <td style={{ padding: '12px 16px' }}>
-                  <select
-                    value={p.status}
-                    onChange={e => mudarStatus(p.id, e.target.value)}
+                  <select value={p.status} onChange={e => mudarStatus(p.id, e.target.value)}
                     style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #ddd', fontSize: 12, cursor: 'pointer', ...(corStatus[p.status] || {}) }}>
                     <option value="pendente">pendente</option>
                     <option value="separado">separado</option>
@@ -389,16 +556,14 @@ function Pedidos() {
                 <td style={{ padding: '12px 16px', color: '#555', fontSize: 13 }}>{p.retirada || '—'}</td>
                 <td style={{ padding: '12px 16px' }}>
                   <div style={{ display: 'flex', gap: 4 }}>
-                    <button onClick={() => avisarCliente(p)} disabled={aviso === p.id}
-                      title="Avisar cliente no WhatsApp"
+                    <button onClick={() => setEditando(p)} title="Editar"
+                      style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16 }}>✏️</button>
+                    <button onClick={() => avisarCliente(p)} disabled={aviso === p.id} title="Avisar cliente"
                       style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16 }}>
                       {aviso === p.id ? '⏳' : '💬'}
                     </button>
-                    <button onClick={() => imprimir(p)}
-                      title="Imprimir pedido"
-                      style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16 }}>
-                      🖨️
-                    </button>
+                    <button onClick={() => imprimir(p)} title="Imprimir"
+                      style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16 }}>🖨️</button>
                   </div>
                 </td>
               </tr>
@@ -409,6 +574,7 @@ function Pedidos() {
 
       {verHistorico && <ModalHistorico onClose={() => setHistorico(false)} />}
       {verManual    && <ModalPedidoManual onClose={() => setManual(false)} onSalvo={carregarPedidos} />}
+      {editando     && <ModalEditarPedido pedido={editando} onClose={() => setEditando(null)} onSalvo={carregarPedidos} />}
     </div>
   )
 }
