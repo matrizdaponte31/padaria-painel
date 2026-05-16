@@ -17,6 +17,27 @@ const corStatus = {
   Cancelado: { background: '#f8d7da', color: '#721c24' },
 }
 
+// ── Parseia texto do pedido para carrinho ────────────────
+function parsearPedido(texto, produtos) {
+  if (!texto || !produtos.length) return []
+  const carrinho = []
+  const partes = texto.split(',').map(s => s.trim())
+  for (const parte of partes) {
+    const match = parte.match(/^(.+?)\s+x(\d+)$/i)
+    if (!match) continue
+    const nome = match[1].trim()
+    const qtd = parseInt(match[2])
+    const produto = produtos.find(p => p.nome.toLowerCase() === nome.toLowerCase())
+    if (produto) {
+      carrinho.push({ ...produto, qtd, subtotal: Number(produto.preco) * qtd })
+    } else {
+      // Produto não encontrado no catálogo — adiciona como item custom
+      carrinho.push({ id: `custom_${nome}`, nome, preco: 0, qtd, subtotal: 0, custom: true })
+    }
+  }
+  return carrinho
+}
+
 // ── Modal Histórico ──────────────────────────────────────
 function ModalHistorico({ onClose }) {
   const [meses, setMeses]     = useState([])
@@ -113,7 +134,7 @@ function SeletorProdutos({ produtos, carrinho, setCarrinho }) {
   }
 
   return (
-    <div style={{ maxHeight: 320, overflowY: 'auto', border: '1px solid #eee', borderRadius: 6 }}>
+    <div style={{ maxHeight: 280, overflowY: 'auto', border: '1px solid #eee', borderRadius: 6 }}>
       {categorias.map(cat => (
         <div key={cat}>
           <div style={{ background: '#f0ece4', padding: '6px 12px', fontSize: 11, fontWeight: 700, color: '#c8660a', textTransform: 'uppercase', letterSpacing: '.05em' }}>
@@ -121,7 +142,6 @@ function SeletorProdutos({ produtos, carrinho, setCarrinho }) {
           </div>
           {produtos.filter(p => p.categoria === cat && p.disponivel !== false).map((p, i) => (
             <div key={p.id} style={{ display: 'flex', alignItems: 'center', padding: '7px 12px', borderBottom: '1px solid #f5f5f5', gap: 8 }}>
-              <span style={{ fontSize: 12, color: '#999', width: 20 }}>{p.ordem || i + 1}</span>
               <span style={{ flex: 1, fontSize: 13 }}>{p.nome}</span>
               <span style={{ fontSize: 12, color: '#888', width: 70 }}>R$ {Number(p.preco).toFixed(2).replace('.', ',')}</span>
               <input
@@ -135,6 +155,42 @@ function SeletorProdutos({ produtos, carrinho, setCarrinho }) {
           ))}
         </div>
       ))}
+    </div>
+  )
+}
+
+// ── Resumo do Carrinho ───────────────────────────────────
+function ResumoCarrinho({ carrinho, setCarrinho }) {
+  if (carrinho.length === 0) return (
+    <div style={{ background: '#faf7f2', borderRadius: 6, padding: '12px', fontSize: 13, color: '#aaa', textAlign: 'center' }}>
+      Nenhum produto selecionado
+    </div>
+  )
+
+  function remover(id) {
+    setCarrinho(c => c.filter(i => i.id !== id))
+  }
+
+  const total = carrinho.reduce((s, i) => s + (i.subtotal || 0), 0)
+
+  return (
+    <div style={{ background: '#faf7f2', borderRadius: 6, padding: '10px 12px', fontSize: 13 }}>
+      {carrinho.map(i => (
+        <div key={i.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+          <span>{i.nome} x{i.qtd}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontWeight: 600 }}>
+              {i.subtotal > 0 ? `R$ ${i.subtotal},00` : '—'}
+            </span>
+            <button onClick={() => remover(i.id)}
+              style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#dc3545', fontSize: 14, padding: 0 }}>✕</button>
+          </div>
+        </div>
+      ))}
+      <div style={{ borderTop: '1px solid #e0d8cc', marginTop: 8, paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
+        <span>Total</span>
+        <span style={{ color: '#c8660a' }}>R$ {total},00</span>
+      </div>
     </div>
   )
 }
@@ -163,8 +219,7 @@ function ModalPedidoManual({ produtos, onClose, onSalvo }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nome, telefone, pedido: pedidoTexto, total: `R$ ${total},00`, retirada, status })
       })
-      onSalvo()
-      onClose()
+      onSalvo(); onClose()
     } catch { alert('Erro ao salvar pedido') }
     setSalvando(false)
   }
@@ -187,25 +242,15 @@ function ModalPedidoManual({ produtos, onClose, onSalvo }) {
           </div>
         </div>
 
-        <div style={{ marginBottom: 12 }}>
+        <div style={{ marginBottom: 8 }}>
           <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 6, color: '#555' }}>Produtos *</label>
           <SeletorProdutos produtos={produtos} carrinho={carrinho} setCarrinho={setCarrinho} />
         </div>
 
-        {carrinho.length > 0 && (
-          <div style={{ background: '#faf7f2', borderRadius: 6, padding: '10px 12px', marginBottom: 12, fontSize: 13 }}>
-            {carrinho.map(i => (
-              <div key={i.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                <span>{i.nome} x{i.qtd}</span>
-                <span style={{ fontWeight: 600 }}>R$ {i.subtotal},00</span>
-              </div>
-            ))}
-            <div style={{ borderTop: '1px solid #e0d8cc', marginTop: 6, paddingTop: 6, display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
-              <span>Total</span>
-              <span style={{ color: '#c8660a' }}>R$ {total},00</span>
-            </div>
-          </div>
-        )}
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 6, color: '#555' }}>Resumo</label>
+          <ResumoCarrinho carrinho={carrinho} setCarrinho={setCarrinho} />
+        </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
           <div>
@@ -252,25 +297,29 @@ function ModalPedidoManual({ produtos, onClose, onSalvo }) {
 }
 
 // ── Modal Editar Pedido ──────────────────────────────────
-function ModalEditarPedido({ pedido, onClose, onSalvo }) {
-  const [form, setForm] = useState({
-    nome:     pedido.nome     || '',
-    telefone: pedido.telefone || '',
-    pedido:   pedido.pedido   || '',
-    total:    pedido.total    || '',
-    retirada: pedido.retirada || '',
-    status:   pedido.status?.toLowerCase() || 'pendente',
-  })
+function ModalEditarPedido({ pedido, produtos, onClose, onSalvo }) {
+  const [nome, setNome]         = useState(pedido.nome || '')
+  const [telefone, setTelefone] = useState(pedido.telefone || '')
+  const [retirada, setRetirada] = useState(pedido.retirada || '')
+  const [status, setStatus]     = useState(pedido.status?.toLowerCase() || 'pendente')
+  const [carrinho, setCarrinho] = useState(() => parsearPedido(pedido.pedido, produtos))
   const [salvando, setSalvando] = useState(false)
-  const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }))
+
+  const total = carrinho.reduce((s, i) => s + (i.subtotal || 0), 0)
+  const pedidoTexto = carrinho.map(i => `${i.nome} x${i.qtd}`).join(', ')
 
   async function salvar() {
+    if (!nome) { alert('Nome é obrigatório'); return }
+    if (carrinho.length === 0) { alert('Adicione pelo menos um produto'); return }
     setSalvando(true)
     try {
       await fetch(`${API}/api/pedidos/${pedido.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
+        body: JSON.stringify({
+          nome, telefone, pedido: pedidoTexto,
+          total: `R$ ${total},00`, retirada, status
+        })
       })
       onSalvo(); onClose()
     } catch { alert('Erro ao salvar') }
@@ -279,52 +328,62 @@ function ModalEditarPedido({ pedido, onClose, onSalvo }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-      <div style={{ background: 'white', borderRadius: 10, padding: 24, width: 500, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
-        <h3 style={{ marginBottom: 16 }}>✏️ Editar Pedido #{pedido.id}</h3>
+      <div style={{ background: 'white', borderRadius: 10, padding: 24, width: 540, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
+        <h3 style={{ marginBottom: 16 }}>✏️ Editar Pedido #{pedido.id} — {pedido.nome}</h3>
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
           <div>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Nome</label>
-            <input value={form.nome} onChange={set('nome')}
+            <input value={nome} onChange={e => setNome(e.target.value)}
               style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13 }} />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Telefone</label>
-            <input value={form.telefone} onChange={set('telefone')}
+            <input value={telefone} onChange={e => setTelefone(e.target.value)}
               style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13 }} />
           </div>
         </div>
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Pedido</label>
-          <textarea value={form.pedido} onChange={set('pedido')} rows={3}
-            style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13, resize: 'vertical' }} />
+
+        {/* Itens atuais */}
+        <div style={{ marginBottom: 8 }}>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 6, color: '#555' }}>
+            Itens do pedido
+          </label>
+          <ResumoCarrinho carrinho={carrinho} setCarrinho={setCarrinho} />
         </div>
+
+        {/* Adicionar mais produtos */}
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 6, color: '#555' }}>
+            Adicionar produtos
+          </label>
+          <SeletorProdutos produtos={produtos} carrinho={carrinho} setCarrinho={setCarrinho} />
+        </div>
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
           <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Total</label>
-            <input value={form.total} onChange={set('total')} placeholder="R$ 50,00"
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Retirada</label>
+            <input value={retirada} onChange={e => setRetirada(e.target.value)}
+              placeholder="Sexta-feira das 10h-12h"
               style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13 }} />
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Retirada</label>
-            <input value={form.retirada} onChange={set('retirada')}
-              style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13 }} />
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Status</label>
+            <select value={status} onChange={e => setStatus(e.target.value)}
+              style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13 }}>
+              <option value="pendente">Pendente</option>
+              <option value="separado">Separado</option>
+              <option value="pronto">Pronto</option>
+              <option value="entregue">Entregue</option>
+              <option value="cancelado">Cancelado</option>
+            </select>
           </div>
         </div>
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Status</label>
-          <select value={form.status} onChange={set('status')}
-            style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13 }}>
-            <option value="pendente">Pendente</option>
-            <option value="separado">Separado</option>
-            <option value="pronto">Pronto</option>
-            <option value="entregue">Entregue</option>
-            <option value="cancelado">Cancelado</option>
-          </select>
-        </div>
+
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={salvar} disabled={salvando}
             style={{ flex: 1, padding: '10px', borderRadius: 6, border: 'none', background: '#c8660a', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
-            {salvando ? 'Salvando...' : '💾 Salvar'}
+            {salvando ? 'Salvando...' : `💾 Salvar — R$ ${total},00`}
           </button>
           <button onClick={onClose}
             style={{ padding: '10px 16px', borderRadius: 6, border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}>
@@ -359,7 +418,6 @@ function Pedidos() {
 
   useEffect(() => {
     carregarPedidos()
-    // Carrega produtos do cardápio
     fetch(`${API}/api/cardapio`)
       .then(r => r.json())
       .then(d => setProdutos(d || []))
@@ -552,7 +610,7 @@ function Pedidos() {
 
       {verHistorico && <ModalHistorico onClose={() => setHistorico(false)} />}
       {verManual    && <ModalPedidoManual produtos={produtos} onClose={() => setManual(false)} onSalvo={carregarPedidos} />}
-      {editando     && <ModalEditarPedido pedido={editando} onClose={() => setEditando(null)} onSalvo={carregarPedidos} />}
+      {editando     && <ModalEditarPedido pedido={editando} produtos={produtos} onClose={() => setEditando(null)} onSalvo={carregarPedidos} />}
     </div>
   )
 }
