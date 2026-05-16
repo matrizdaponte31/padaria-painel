@@ -13,10 +13,7 @@ function Cardapio() {
     setLoading(true)
     fetch(`${API}/api/cardapio`)
       .then(r => r.json())
-      .then(d => {
-        setProdutos(d.produtos || d || [])
-        setLoading(false)
-      })
+      .then(d => { setProdutos(d || []); setLoading(false) })
       .catch(() => setLoading(false))
   }
 
@@ -93,10 +90,9 @@ function Cardapio() {
       </div>
 
       <p style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>
-        Os produtos aqui são os mesmos que o Rafael envia no cardápio pelo WhatsApp. Alterar aqui atualiza automaticamente o bot.
+        Alterações aqui refletem automaticamente no bot do Rafael e no pedido manual.
       </p>
 
-      {/* Por categoria */}
       {categorias.length === 0 ? (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', background: 'white', borderRadius: 8, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.1)' }}>
@@ -111,13 +107,13 @@ function Cardapio() {
             </thead>
             <tbody>
               {produtos.length === 0 && (
-                <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: '#888' }}>Nenhum produto cadastrado ainda</td></tr>
+                <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: '#888' }}>Nenhum produto cadastrado</td></tr>
               )}
               {produtos.map((p, i) => (
                 <tr key={p.id} style={{ borderTop: '1px solid #eee' }}>
                   <td style={{ padding: '12px 16px', color: '#999' }}>{i + 1}</td>
                   <td style={{ padding: '12px 16px', fontWeight: 500, opacity: p.disponivel === false ? .4 : 1 }}>{p.nome}</td>
-                  <td style={{ padding: '12px 16px', fontWeight: 600 }}>{p.preco}</td>
+                  <td style={{ padding: '12px 16px', fontWeight: 600 }}>R$ {Number(p.preco).toFixed(2).replace('.', ',')}</td>
                   <td style={{ padding: '12px 16px' }}>
                     <button onClick={() => toggleDisponivel(p)}
                       style={{ border: 'none', borderRadius: 99, padding: '3px 10px', fontSize: 12, cursor: 'pointer', background: p.disponivel !== false ? '#d4edda' : '#f8d7da', color: p.disponivel !== false ? '#155724' : '#721c24' }}>
@@ -139,40 +135,38 @@ function Cardapio() {
         categorias.map(cat => (
           <div key={cat} style={{ marginBottom: 24 }}>
             <h3 style={{ fontSize: 14, color: '#c8660a', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '.05em' }}>{cat}</h3>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', background: 'white', borderRadius: 8, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.1)' }}>
-                <thead>
-                  <tr style={{ background: '#f0ece4', fontSize: 13 }}>
-                    <th style={{ padding: '10px 16px', textAlign: 'left' }}>#</th>
-                    <th style={{ padding: '10px 16px', textAlign: 'left' }}>Produto</th>
-                    <th style={{ padding: '10px 16px', textAlign: 'left' }}>Preço</th>
-                    <th style={{ padding: '10px 16px', textAlign: 'left' }}>Disponível</th>
-                    <th style={{ padding: '10px 16px', textAlign: 'left' }}>Ações</th>
+            <table style={{ width: '100%', borderCollapse: 'collapse', background: 'white', borderRadius: 8, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.1)' }}>
+              <thead>
+                <tr style={{ background: '#f0ece4', fontSize: 13 }}>
+                  <th style={{ padding: '10px 16px', textAlign: 'left' }}>#</th>
+                  <th style={{ padding: '10px 16px', textAlign: 'left' }}>Produto</th>
+                  <th style={{ padding: '10px 16px', textAlign: 'left' }}>Preço</th>
+                  <th style={{ padding: '10px 16px', textAlign: 'left' }}>Disponível</th>
+                  <th style={{ padding: '10px 16px', textAlign: 'left' }}>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {produtos.filter(p => p.categoria === cat).map((p, i) => (
+                  <tr key={p.id} style={{ borderTop: '1px solid #eee' }}>
+                    <td style={{ padding: '10px 16px', color: '#999' }}>{p.ordem || i + 1}</td>
+                    <td style={{ padding: '10px 16px', fontWeight: 500, opacity: p.disponivel === false ? .4 : 1 }}>{p.nome}</td>
+                    <td style={{ padding: '10px 16px', fontWeight: 600 }}>R$ {Number(p.preco).toFixed(2).replace('.', ',')}</td>
+                    <td style={{ padding: '10px 16px' }}>
+                      <button onClick={() => toggleDisponivel(p)}
+                        style={{ border: 'none', borderRadius: 99, padding: '3px 10px', fontSize: 12, cursor: 'pointer', background: p.disponivel !== false ? '#d4edda' : '#f8d7da', color: p.disponivel !== false ? '#155724' : '#721c24' }}>
+                        {p.disponivel !== false ? '✓ Sim' : '✕ Não'}
+                      </button>
+                    </td>
+                    <td style={{ padding: '10px 16px' }}>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <button onClick={() => abrirEditar(p)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16 }}>✏️</button>
+                        <button onClick={() => excluir(p.id, p.nome)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16 }}>🗑️</button>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {produtos.filter(p => p.categoria === cat).map((p, i) => (
-                    <tr key={p.id} style={{ borderTop: '1px solid #eee' }}>
-                      <td style={{ padding: '10px 16px', color: '#999' }}>{i + 1}</td>
-                      <td style={{ padding: '10px 16px', fontWeight: 500, opacity: p.disponivel === false ? .4 : 1 }}>{p.nome}</td>
-                      <td style={{ padding: '10px 16px', fontWeight: 600 }}>{p.preco}</td>
-                      <td style={{ padding: '10px 16px' }}>
-                        <button onClick={() => toggleDisponivel(p)}
-                          style={{ border: 'none', borderRadius: 99, padding: '3px 10px', fontSize: 12, cursor: 'pointer', background: p.disponivel !== false ? '#d4edda' : '#f8d7da', color: p.disponivel !== false ? '#155724' : '#721c24' }}>
-                          {p.disponivel !== false ? '✓ Sim' : '✕ Não'}
-                        </button>
-                      </td>
-                      <td style={{ padding: '10px 16px' }}>
-                        <div style={{ display: 'flex', gap: 4 }}>
-                          <button onClick={() => abrirEditar(p)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16 }}>✏️</button>
-                          <button onClick={() => excluir(p.id, p.nome)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16 }}>🗑️</button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
         ))
       )}
@@ -184,8 +178,8 @@ function Cardapio() {
             <h3 style={{ marginBottom: 20 }}>{modal === 'novo' ? '➕ Novo Produto' : '✏️ Editar Produto'}</h3>
             {[
               { key: 'nome',      label: 'Nome *',      placeholder: 'Cuca Farofa G' },
-              { key: 'preco',     label: 'Preço *',     placeholder: 'R$ 35,00' },
-              { key: 'categoria', label: 'Categoria',   placeholder: 'Cucas, Bolos, Tortas...' },
+              { key: 'preco',     label: 'Preço *',     placeholder: '35' },
+              { key: 'categoria', label: 'Categoria',   placeholder: 'Cucas Farofa' },
             ].map(f => (
               <div key={f.key} style={{ marginBottom: 14 }}>
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>{f.label}</label>
@@ -193,6 +187,7 @@ function Cardapio() {
                   value={form[f.key]}
                   onChange={e => setForm(f2 => ({ ...f2, [f.key]: e.target.value }))}
                   placeholder={f.placeholder}
+                  type={f.key === 'preco' ? 'number' : 'text'}
                   style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13 }}
                 />
               </div>
