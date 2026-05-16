@@ -1,74 +1,88 @@
 import { useState, useEffect } from 'react'
+import { api } from './api'
 
-const API = 'https://bakery-production-ea1e.up.railway.app'
+function ModalProduto({ produto, onClose, onSalvo }) {
+  const isEdit = !!produto
+  const [form, setForm] = useState({
+    nome:       produto?.nome       || '',
+    preco:      produto?.preco      || '',
+    categoria:  produto?.categoria  || '',
+    disponivel: produto?.disponivel !== false,
+  })
+  const [salvando, setSalvando] = useState(false)
+  const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }))
 
-function Cardapio() {
+  async function salvar() {
+    if (!form.nome || !form.preco) { alert('Nome e preço são obrigatórios'); return }
+    setSalvando(true)
+    try {
+      if (isEdit) await api.put(`/api/cardapio/${produto.id}`, form)
+      else await api.post('/api/cardapio', form)
+      onSalvo(); onClose()
+    } catch (e) { alert(e.message) }
+    setSalvando(false)
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+      <div style={{ background: 'white', borderRadius: 10, padding: 28, width: 400, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
+        <h3 style={{ marginBottom: 20 }}>{isEdit ? '✏️ Editar Produto' : '➕ Novo Produto'}</h3>
+        {[
+          { key: 'nome',      label: 'Nome *',    placeholder: 'Cuca Farofa G',  type: 'text'   },
+          { key: 'preco',     label: 'Preço *',   placeholder: '35',             type: 'number' },
+          { key: 'categoria', label: 'Categoria', placeholder: 'Cucas Farofa',   type: 'text'   },
+        ].map(f => (
+          <div key={f.key} style={{ marginBottom: 14 }}>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>{f.label}</label>
+            <input value={form[f.key]} onChange={set(f.key)} placeholder={f.placeholder} type={f.type}
+              style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13, boxSizing: 'border-box' }} />
+          </div>
+        ))}
+        <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input type="checkbox" id="disp" checked={form.disponivel}
+            onChange={e => setForm(f => ({ ...f, disponivel: e.target.checked }))} />
+          <label htmlFor="disp" style={{ fontSize: 13, color: '#555' }}>Disponível no cardápio</label>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={salvar} disabled={salvando}
+            style={{ flex: 1, padding: '9px', borderRadius: 6, border: 'none', background: '#c8660a', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
+            {salvando ? 'Salvando...' : '💾 Salvar'}
+          </button>
+          <button onClick={onClose}
+            style={{ padding: '9px 16px', borderRadius: 6, border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}>
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function Cardapio() {
   const [produtos, setProdutos] = useState([])
   const [loading, setLoading]   = useState(true)
-  const [salvando, setSalvando] = useState(false)
   const [modal, setModal]       = useState(null)
-  const [form, setForm]         = useState({ nome: '', preco: '', categoria: '', disponivel: true })
 
   function carregar() {
     setLoading(true)
-    fetch(`${API}/api/cardapio`)
-      .then(r => r.json())
+    api.get('/api/cardapio')
       .then(d => { setProdutos(d || []); setLoading(false) })
       .catch(() => setLoading(false))
   }
 
   useEffect(() => { carregar() }, [])
 
-  function abrirNovo() {
-    setForm({ nome: '', preco: '', categoria: '', disponivel: true })
-    setModal('novo')
-  }
-
-  function abrirEditar(p) {
-    setForm({ nome: p.nome, preco: p.preco, categoria: p.categoria || '', disponivel: p.disponivel !== false })
-    setModal(p)
-  }
-
-  async function salvar() {
-    if (!form.nome || !form.preco) { alert('Nome e preço são obrigatórios'); return }
-    setSalvando(true)
-    try {
-      if (modal === 'novo') {
-        await fetch(`${API}/api/cardapio`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(form)
-        })
-      } else {
-        await fetch(`${API}/api/cardapio/${modal.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(form)
-        })
-      }
-      setModal(null)
-      carregar()
-    } catch { alert('Erro ao salvar') }
-    setSalvando(false)
-  }
-
   async function excluir(id, nome) {
     if (!confirm(`Excluir "${nome}"?`)) return
-    try {
-      await fetch(`${API}/api/cardapio/${id}`, { method: 'DELETE' })
-      carregar()
-    } catch { alert('Erro ao excluir') }
+    try { await api.delete(`/api/cardapio/${id}`); carregar() }
+    catch (e) { alert(e.message) }
   }
 
   async function toggleDisponivel(p) {
     try {
-      await fetch(`${API}/api/cardapio/${p.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...p, disponivel: !p.disponivel })
-      })
+      await api.put(`/api/cardapio/${p.id}`, { ...p, disponivel: !p.disponivel })
       carregar()
-    } catch { alert('Erro ao atualizar') }
+    } catch (e) { alert(e.message) }
   }
 
   const categorias = [...new Set(produtos.map(p => p.categoria).filter(Boolean))]
@@ -83,7 +97,7 @@ function Cardapio() {
           style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}>
           🔄 Atualizar
         </button>
-        <button onClick={abrirNovo}
+        <button onClick={() => setModal('novo')}
           style={{ padding: '7px 14px', borderRadius: 6, border: 'none', background: '#c8660a', color: 'white', cursor: 'pointer', marginLeft: 'auto' }}>
           ➕ Novo Produto
         </button>
@@ -122,7 +136,7 @@ function Cardapio() {
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     <div style={{ display: 'flex', gap: 4 }}>
-                      <button onClick={() => abrirEditar(p)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16 }}>✏️</button>
+                      <button onClick={() => setModal(p)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16 }}>✏️</button>
                       <button onClick={() => excluir(p.id, p.nome)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16 }}>🗑️</button>
                     </div>
                   </td>
@@ -159,7 +173,7 @@ function Cardapio() {
                     </td>
                     <td style={{ padding: '10px 16px' }}>
                       <div style={{ display: 'flex', gap: 4 }}>
-                        <button onClick={() => abrirEditar(p)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16 }}>✏️</button>
+                        <button onClick={() => setModal(p)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16 }}>✏️</button>
                         <button onClick={() => excluir(p.id, p.nome)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16 }}>🗑️</button>
                       </div>
                     </td>
@@ -171,47 +185,13 @@ function Cardapio() {
         ))
       )}
 
-      {/* Modal */}
       {modal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: 'white', borderRadius: 10, padding: 28, width: 400, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
-            <h3 style={{ marginBottom: 20 }}>{modal === 'novo' ? '➕ Novo Produto' : '✏️ Editar Produto'}</h3>
-            {[
-              { key: 'nome',      label: 'Nome *',      placeholder: 'Cuca Farofa G' },
-              { key: 'preco',     label: 'Preço *',     placeholder: '35' },
-              { key: 'categoria', label: 'Categoria',   placeholder: 'Cucas Farofa' },
-            ].map(f => (
-              <div key={f.key} style={{ marginBottom: 14 }}>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>{f.label}</label>
-                <input
-                  value={form[f.key]}
-                  onChange={e => setForm(f2 => ({ ...f2, [f.key]: e.target.value }))}
-                  placeholder={f.placeholder}
-                  type={f.key === 'preco' ? 'number' : 'text'}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13 }}
-                />
-              </div>
-            ))}
-            <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input type="checkbox" id="disp" checked={form.disponivel}
-                onChange={e => setForm(f => ({ ...f, disponivel: e.target.checked }))} />
-              <label htmlFor="disp" style={{ fontSize: 13, color: '#555' }}>Disponível no cardápio</label>
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={salvar} disabled={salvando}
-                style={{ flex: 1, padding: '9px', borderRadius: 6, border: 'none', background: '#c8660a', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
-                {salvando ? 'Salvando...' : '💾 Salvar'}
-              </button>
-              <button onClick={() => setModal(null)}
-                style={{ padding: '9px 16px', borderRadius: 6, border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}>
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
+        <ModalProduto
+          produto={modal === 'novo' ? null : modal}
+          onClose={() => setModal(null)}
+          onSalvo={carregar}
+        />
       )}
     </div>
   )
 }
-
-export default Cardapio

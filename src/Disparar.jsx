@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
+import { api } from './api'
 
-const API = 'https://bakery-production-ea1e.up.railway.app'
-
-function Disparar() {
+export default function Disparar() {
   const [contatos, setContatos]   = useState([])
   const [templates, setTemplates] = useState([])
   const [grupo, setGrupo]         = useState('')
@@ -14,8 +13,8 @@ function Disparar() {
   const parar = useRef(false)
 
   useEffect(() => {
-    fetch(`${API}/api/contatos`).then(r => r.json()).then(d => setContatos(d.contatos || d || []))
-    fetch(`${API}/api/templates`).then(r => r.json()).then(d => setTemplates(d.templates || d || []))
+    api.get('/api/contatos').then(d => setContatos(d || [])).catch(() => {})
+    api.get('/api/templates').then(d => setTemplates(d || [])).catch(() => {})
   }, [])
 
   const grupos = [...new Set(contatos.map(c => c.grupo).filter(Boolean))]
@@ -38,23 +37,15 @@ function Disparar() {
 
     for (let i = 0; i < destinatarios.length; i++) {
       if (parar.current) { addLog('⛔ Envio parado!', 'erro'); break }
-
       const c = destinatarios[i]
       const msg = mensagem.replace(/{nome}/g, c.nome || '')
-
       try {
-        await fetch(`${API}/api/disparar`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contatos: [c.telefone], mensagem: msg, delay: 0 })
-        })
+        await api.post('/api/disparar', { contatos: [c.telefone], mensagem: msg, delay: 0 })
         addLog(`✓ ${c.nome}`, 'ok')
-      } catch {
-        addLog(`✕ ${c.nome} — erro`, 'erro')
+      } catch (e) {
+        addLog(`✕ ${c.nome} — ${e.message}`, 'erro')
       }
-
       setProgresso(p => ({ ...p, feito: p.feito + 1 }))
-
       if (i < destinatarios.length - 1 && !parar.current) {
         addLog(`⏳ Aguardando ${delay} min...`)
         await new Promise(res => setTimeout(res, delay * 60 * 1000))
@@ -93,13 +84,10 @@ function Disparar() {
             <option value="">— Usar template —</option>
             {templates.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
           </select>
-          <textarea
-            value={mensagem}
-            onChange={e => setMensagem(e.target.value)}
+          <textarea value={mensagem} onChange={e => setMensagem(e.target.value)}
             placeholder="Olá {nome}! Temos novidades esta semana 🍞"
             rows={5}
-            style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', resize: 'vertical' }}
-          />
+            style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', resize: 'vertical', boxSizing: 'border-box' }} />
           <div style={{ marginTop: 10 }}>
             <label style={{ fontSize: 13 }}>Delay entre envios: <b>{delay} min</b></label>
             <input type="range" min={1} max={5} value={delay} onChange={e => setDelay(Number(e.target.value))}
@@ -142,9 +130,6 @@ function Disparar() {
           ))}
         </div>
       </div>
-
     </div>
   )
 }
-
-export default Disparar

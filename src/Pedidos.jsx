@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
-
-const API = 'https://bakery-production-ea1e.up.railway.app'
+import { api } from './api'
 
 const HORARIOS = ['08h-10h', '10h-12h', '12h-14h', '14h-16h', '16h-18h', '18h-19h']
 const DIAS = ['Sexta-feira', 'Sábado']
@@ -17,7 +16,6 @@ const corStatus = {
   Cancelado: { background: '#f8d7da', color: '#721c24' },
 }
 
-// ── Parseia texto do pedido para carrinho ────────────────
 function parsearPedido(texto, produtos) {
   if (!texto || !produtos.length) return []
   const carrinho = []
@@ -31,14 +29,12 @@ function parsearPedido(texto, produtos) {
     if (produto) {
       carrinho.push({ ...produto, qtd, subtotal: Number(produto.preco) * qtd })
     } else {
-      // Produto não encontrado no catálogo — adiciona como item custom
       carrinho.push({ id: `custom_${nome}`, nome, preco: 0, qtd, subtotal: 0, custom: true })
     }
   }
   return carrinho
 }
 
-// ── Modal Histórico ──────────────────────────────────────
 function ModalHistorico({ onClose }) {
   const [meses, setMeses]     = useState([])
   const [sel, setSel]         = useState(null)
@@ -46,15 +42,14 @@ function ModalHistorico({ onClose }) {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    fetch(`${API}/api/historico`).then(r => r.json()).then(d => setMeses(d.meses || d || [])).catch(() => {})
+    api.get('/api/historico').then(d => setMeses(d || [])).catch(() => {})
   }, [])
 
   async function carregarMes(m) {
     setSel(m); setLoading(true)
     try {
-      const r = await fetch(`${API}/api/historico/${m.mes}/${m.ano}`)
-      const d = await r.json()
-      setDados(d.pedidos || d || [])
+      const d = await api.get(`/api/historico/${m.mes}/${m.ano}`)
+      setDados(d || [])
     } catch { setDados([]) }
     setLoading(false)
   }
@@ -112,7 +107,6 @@ function ModalHistorico({ onClose }) {
   )
 }
 
-// ── Seletor de Produtos ──────────────────────────────────
 function SeletorProdutos({ produtos, carrinho, setCarrinho }) {
   const categorias = [...new Set(produtos.map(p => p.categoria).filter(Boolean))]
 
@@ -129,28 +123,22 @@ function SeletorProdutos({ produtos, carrinho, setCarrinho }) {
     }
   }
 
-  function getQtd(id) {
-    return carrinho.find(i => i.id === id)?.qtd || 0
-  }
+  function getQtd(id) { return carrinho.find(i => i.id === id)?.qtd || 0 }
 
   return (
     <div style={{ maxHeight: 280, overflowY: 'auto', border: '1px solid #eee', borderRadius: 6 }}>
       {categorias.map(cat => (
         <div key={cat}>
-          <div style={{ background: '#f0ece4', padding: '6px 12px', fontSize: 11, fontWeight: 700, color: '#c8660a', textTransform: 'uppercase', letterSpacing: '.05em' }}>
-            {cat}
-          </div>
-          {produtos.filter(p => p.categoria === cat && p.disponivel !== false).map((p, i) => (
+          <div style={{ background: '#f0ece4', padding: '6px 12px', fontSize: 11, fontWeight: 700, color: '#c8660a', textTransform: 'uppercase', letterSpacing: '.05em' }}>{cat}</div>
+          {produtos.filter(p => p.categoria === cat && p.disponivel !== false).map(p => (
             <div key={p.id} style={{ display: 'flex', alignItems: 'center', padding: '7px 12px', borderBottom: '1px solid #f5f5f5', gap: 8 }}>
               <span style={{ flex: 1, fontSize: 13 }}>{p.nome}</span>
               <span style={{ fontSize: 12, color: '#888', width: 70 }}>R$ {Number(p.preco).toFixed(2).replace('.', ',')}</span>
-              <input
-                type="number" min="0" max="99"
+              <input type="number" min="0" max="99"
                 value={getQtd(p.id) || ''}
                 onChange={e => setQtd(p, e.target.value)}
                 placeholder="0"
-                style={{ width: 48, padding: '3px 6px', borderRadius: 4, border: '1px solid #ddd', fontSize: 13, textAlign: 'center' }}
-              />
+                style={{ width: 48, padding: '3px 6px', borderRadius: 4, border: '1px solid #ddd', fontSize: 13, textAlign: 'center' }} />
             </div>
           ))}
         </div>
@@ -159,30 +147,21 @@ function SeletorProdutos({ produtos, carrinho, setCarrinho }) {
   )
 }
 
-// ── Resumo do Carrinho ───────────────────────────────────
 function ResumoCarrinho({ carrinho, setCarrinho }) {
   if (carrinho.length === 0) return (
-    <div style={{ background: '#faf7f2', borderRadius: 6, padding: '12px', fontSize: 13, color: '#aaa', textAlign: 'center' }}>
+    <div style={{ background: '#faf7f2', borderRadius: 6, padding: 12, fontSize: 13, color: '#aaa', textAlign: 'center' }}>
       Nenhum produto selecionado
     </div>
   )
-
-  function remover(id) {
-    setCarrinho(c => c.filter(i => i.id !== id))
-  }
-
   const total = carrinho.reduce((s, i) => s + (i.subtotal || 0), 0)
-
   return (
     <div style={{ background: '#faf7f2', borderRadius: 6, padding: '10px 12px', fontSize: 13 }}>
       {carrinho.map(i => (
         <div key={i.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
           <span>{i.nome} x{i.qtd}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontWeight: 600 }}>
-              {i.subtotal > 0 ? `R$ ${i.subtotal},00` : '—'}
-            </span>
-            <button onClick={() => remover(i.id)}
+            <span style={{ fontWeight: 600 }}>{i.subtotal > 0 ? `R$ ${i.subtotal},00` : '—'}</span>
+            <button onClick={() => setCarrinho(c => c.filter(x => x.id !== i.id))}
               style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#dc3545', fontSize: 14, padding: 0 }}>✕</button>
           </div>
         </div>
@@ -195,7 +174,6 @@ function ResumoCarrinho({ carrinho, setCarrinho }) {
   )
 }
 
-// ── Modal Pedido Manual ──────────────────────────────────
 function ModalPedidoManual({ produtos, onClose, onSalvo }) {
   const [nome, setNome]         = useState('')
   const [telefone, setTelefone] = useState('')
@@ -206,21 +184,21 @@ function ModalPedidoManual({ produtos, onClose, onSalvo }) {
   const [salvando, setSalvando] = useState(false)
 
   const total = carrinho.reduce((s, i) => s + i.subtotal, 0)
-  const retirada = `${dia} das ${horario}`
-  const pedidoTexto = carrinho.map(i => `${i.nome} x${i.qtd}`).join(', ')
 
   async function salvar() {
     if (!nome) { alert('Nome é obrigatório'); return }
     if (carrinho.length === 0) { alert('Adicione pelo menos um produto'); return }
     setSalvando(true)
     try {
-      await fetch(`${API}/api/pedidos/manual`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome, telefone, pedido: pedidoTexto, total: `R$ ${total},00`, retirada, status })
+      await api.post('/api/pedidos/manual', {
+        nome, telefone,
+        pedido: carrinho.map(i => `${i.nome} x${i.qtd}`).join(', '),
+        total: `R$ ${total},00`,
+        retirada: `${dia} das ${horario}`,
+        status
       })
       onSalvo(); onClose()
-    } catch { alert('Erro ao salvar pedido') }
+    } catch (e) { alert(e.message) }
     setSalvando(false)
   }
 
@@ -228,7 +206,6 @@ function ModalPedidoManual({ produtos, onClose, onSalvo }) {
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
       <div style={{ background: 'white', borderRadius: 10, padding: 24, width: 540, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
         <h3 style={{ marginBottom: 16 }}>➕ Pedido Manual</h3>
-
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
           <div>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Nome *</label>
@@ -241,17 +218,14 @@ function ModalPedidoManual({ produtos, onClose, onSalvo }) {
               style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13 }} />
           </div>
         </div>
-
         <div style={{ marginBottom: 8 }}>
           <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 6, color: '#555' }}>Produtos *</label>
           <SeletorProdutos produtos={produtos} carrinho={carrinho} setCarrinho={setCarrinho} />
         </div>
-
         <div style={{ marginBottom: 12 }}>
           <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 6, color: '#555' }}>Resumo</label>
           <ResumoCarrinho carrinho={carrinho} setCarrinho={setCarrinho} />
         </div>
-
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
           <div>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Dia</label>
@@ -268,7 +242,6 @@ function ModalPedidoManual({ produtos, onClose, onSalvo }) {
             </select>
           </div>
         </div>
-
         <div style={{ marginBottom: 20 }}>
           <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Status</label>
           <select value={status} onChange={e => setStatus(e.target.value)}
@@ -280,7 +253,6 @@ function ModalPedidoManual({ produtos, onClose, onSalvo }) {
             <option value="cancelado">Cancelado</option>
           </select>
         </div>
-
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={salvar} disabled={salvando}
             style={{ flex: 1, padding: '10px', borderRadius: 6, border: 'none', background: '#c8660a', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
@@ -296,7 +268,6 @@ function ModalPedidoManual({ produtos, onClose, onSalvo }) {
   )
 }
 
-// ── Modal Editar Pedido ──────────────────────────────────
 function ModalEditarPedido({ pedido, produtos, onClose, onSalvo }) {
   const [nome, setNome]         = useState(pedido.nome || '')
   const [telefone, setTelefone] = useState(pedido.telefone || '')
@@ -306,23 +277,20 @@ function ModalEditarPedido({ pedido, produtos, onClose, onSalvo }) {
   const [salvando, setSalvando] = useState(false)
 
   const total = carrinho.reduce((s, i) => s + (i.subtotal || 0), 0)
-  const pedidoTexto = carrinho.map(i => `${i.nome} x${i.qtd}`).join(', ')
 
   async function salvar() {
     if (!nome) { alert('Nome é obrigatório'); return }
     if (carrinho.length === 0) { alert('Adicione pelo menos um produto'); return }
     setSalvando(true)
     try {
-      await fetch(`${API}/api/pedidos/${pedido.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nome, telefone, pedido: pedidoTexto,
-          total: `R$ ${total},00`, retirada, status
-        })
+      await api.put(`/api/pedidos/${pedido.id}`, {
+        nome, telefone,
+        pedido: carrinho.map(i => `${i.nome} x${i.qtd}`).join(', '),
+        total: `R$ ${total},00`,
+        retirada, status
       })
       onSalvo(); onClose()
-    } catch { alert('Erro ao salvar') }
+    } catch (e) { alert(e.message) }
     setSalvando(false)
   }
 
@@ -330,7 +298,6 @@ function ModalEditarPedido({ pedido, produtos, onClose, onSalvo }) {
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
       <div style={{ background: 'white', borderRadius: 10, padding: 24, width: 540, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
         <h3 style={{ marginBottom: 16 }}>✏️ Editar Pedido #{pedido.id} — {pedido.nome}</h3>
-
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
           <div>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Nome</label>
@@ -343,24 +310,15 @@ function ModalEditarPedido({ pedido, produtos, onClose, onSalvo }) {
               style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13 }} />
           </div>
         </div>
-
-        {/* Itens atuais */}
         <div style={{ marginBottom: 8 }}>
-          <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 6, color: '#555' }}>
-            Itens do pedido
-          </label>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 6, color: '#555' }}>Itens do pedido</label>
           <ResumoCarrinho carrinho={carrinho} setCarrinho={setCarrinho} />
         </div>
-
-        {/* Adicionar mais produtos */}
         <div style={{ marginBottom: 12 }}>
-          <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 6, color: '#555' }}>
-            Adicionar produtos
-          </label>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 6, color: '#555' }}>Adicionar produtos</label>
           <SeletorProdutos produtos={produtos} carrinho={carrinho} setCarrinho={setCarrinho} />
         </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
           <div>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Retirada</label>
             <input value={retirada} onChange={e => setRetirada(e.target.value)}
@@ -379,7 +337,6 @@ function ModalEditarPedido({ pedido, produtos, onClose, onSalvo }) {
             </select>
           </div>
         </div>
-
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={salvar} disabled={salvando}
             style={{ flex: 1, padding: '10px', borderRadius: 6, border: 'none', background: '#c8660a', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
@@ -395,8 +352,7 @@ function ModalEditarPedido({ pedido, produtos, onClose, onSalvo }) {
   )
 }
 
-// ── Página Principal ─────────────────────────────────────
-function Pedidos() {
+export default function Pedidos({ nivel }) {
   const [pedidos, setPedidos]        = useState([])
   const [produtos, setProdutos]      = useState([])
   const [loading, setLoading]        = useState(true)
@@ -407,29 +363,24 @@ function Pedidos() {
   const [verHistorico, setHistorico] = useState(false)
   const [verManual, setManual]       = useState(false)
   const [editando, setEditando]      = useState(null)
+  const isAdmin = nivel === 'admin'
 
   function carregarPedidos() {
     setLoading(true)
-    fetch(`${API}/api/pedidos`)
-      .then(r => r.json())
-      .then(data => { setPedidos(data.pedidos || data || []); setLoading(false) })
+    api.get('/api/pedidos')
+      .then(data => { setPedidos(data || []); setLoading(false) })
       .catch(() => { setErro('Erro ao conectar com o servidor'); setLoading(false) })
   }
 
   useEffect(() => {
     carregarPedidos()
-    fetch(`${API}/api/cardapio`)
-      .then(r => r.json())
-      .then(d => setProdutos(d || []))
-      .catch(() => {})
+    api.get('/api/cardapio').then(d => setProdutos(d || [])).catch(() => {})
   }, [])
 
   function mudarStatus(id, novoStatus) {
-    fetch(`${API}/api/pedidos/${id}/status`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: novoStatus })
-    }).then(() => carregarPedidos()).catch(() => alert('Erro ao atualizar status'))
+    api.put(`/api/pedidos/${id}/status`, { status: novoStatus })
+      .then(() => carregarPedidos())
+      .catch(e => alert(e.message))
   }
 
   async function avisarCliente(p) {
@@ -437,28 +388,23 @@ function Pedidos() {
     if (!confirm(`Avisar ${p.nome} que o pedido está pronto?`)) return
     setAviso(p.id)
     try {
-      await fetch(`${API}/api/disparar`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contatos: [p.telefone],
-          mensagem: `Olá ${p.nome}! 🍞 Seu pedido está pronto para retirada!\n\n📦 *Pedido:* ${p.pedido}\n💰 *Total:* ${p.total}\n🕐 *Retirada:* ${p.retirada}\n\nObrigada pela preferência! 😊`,
-          delay: 0
-        })
+      await api.post('/api/disparar', {
+        contatos: [p.telefone],
+        mensagem: `Olá ${p.nome}! 🍞 Seu pedido está pronto para retirada!\n\n📦 *Pedido:* ${p.pedido}\n💰 *Total:* ${p.total}\n🕐 *Retirada:* ${p.retirada}\n\nObrigada pela preferência! 😊`,
+        delay: 0
       })
       alert(`✅ Mensagem enviada para ${p.nome}!`)
-    } catch { alert('Erro ao enviar mensagem') }
+    } catch (e) { alert(e.message) }
     setAviso(null)
   }
 
   async function fecharMes() {
     if (!confirm('Fechar o mês? Todos os pedidos serão arquivados.')) return
     try {
-      const r = await fetch(`${API}/api/pedidos/arquivar`, { method: 'POST' })
-      const data = await r.json()
+      const data = await api.post('/api/pedidos/arquivar')
       alert(`✅ ${data.arquivados || 0} pedidos arquivados!`)
       carregarPedidos()
-    } catch { alert('Erro ao fechar o mês') }
+    } catch (e) { alert(e.message) }
   }
 
   function imprimir(p) {
@@ -485,9 +431,9 @@ function Pedidos() {
     return matchBusca && matchStatus
   })
 
-  const total     = pedidos.length
-  const pendentes = pedidos.filter(p => p.status?.toLowerCase() === 'pendente').length
-  const prontos   = pedidos.filter(p => p.status?.toLowerCase() === 'pronto').length
+  const totalPedidos = pedidos.length
+  const pendentes    = pedidos.filter(p => p.status?.toLowerCase() === 'pendente').length
+  const prontos      = pedidos.filter(p => p.status?.toLowerCase() === 'pronto').length
 
   function somarTotal() {
     return pedidos
@@ -507,7 +453,7 @@ function Pedidos() {
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
         {[
-          { label: 'Total',     valor: total,       cor: '#2a1f12' },
+          { label: 'Total',     valor: totalPedidos, cor: '#2a1f12' },
           { label: 'Pendentes', valor: pendentes,    cor: '#856404' },
           { label: 'Prontos',   valor: prontos,      cor: '#004085' },
           { label: 'Receita',   valor: somarTotal(), cor: '#155724' },
@@ -538,18 +484,22 @@ function Pedidos() {
           style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}>
           🔄 Atualizar
         </button>
-        <button onClick={() => setHistorico(true)}
-          style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}>
-          📦 Histórico
-        </button>
+        {isAdmin && (
+          <button onClick={() => setHistorico(true)}
+            style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}>
+            📦 Histórico
+          </button>
+        )}
         <button onClick={() => setManual(true)}
           style={{ padding: '7px 14px', borderRadius: 6, border: 'none', background: '#c8660a', color: 'white', cursor: 'pointer' }}>
           ➕ Pedido Manual
         </button>
-        <button onClick={fecharMes}
-          style={{ padding: '7px 14px', borderRadius: 6, border: 'none', background: '#dc3545', color: 'white', cursor: 'pointer', marginLeft: 'auto' }}>
-          📦 Fechar Mês
-        </button>
+        {isAdmin && (
+          <button onClick={fecharMes}
+            style={{ padding: '7px 14px', borderRadius: 6, border: 'none', background: '#dc3545', color: 'white', cursor: 'pointer', marginLeft: 'auto' }}>
+            📦 Fechar Mês
+          </button>
+        )}
       </div>
 
       {/* Tabela */}
@@ -614,5 +564,3 @@ function Pedidos() {
     </div>
   )
 }
-
-export default Pedidos

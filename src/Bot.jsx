@@ -1,25 +1,23 @@
 import { useState, useEffect } from 'react'
+import { api } from './api'
 
-const API = 'https://bakery-production-ea1e.up.railway.app'
+const INFO = {
+  boas_vindas:       { label: '👋 Boas-vindas',      desc: 'Primeira mensagem ao cliente' },
+  pedido_confirmado: { label: '✅ Pedido confirmado', desc: 'Enviada quando cliente digita SIM' },
+  pedido_cancelado:  { label: '❌ Pedido cancelado',  desc: 'Enviada quando cliente digita NÃO' },
+  aviso_pronto:      { label: '🛍️ Pedido pronto',    desc: 'Enviada pelo painel quando pronto' },
+}
 
-function Bot() {
+export default function Bot() {
   const [mensagens, setMensagens] = useState({})
   const [loading, setLoading]     = useState(true)
   const [salvando, setSalvando]   = useState({})
   const [salvo, setSalvo]         = useState({})
 
-  const info = {
-    boas_vindas:       { label: '👋 Boas-vindas',      desc: 'Primeira mensagem ao cliente' },
-    pedido_confirmado: { label: '✅ Pedido confirmado', desc: 'Enviada quando cliente digita SIM' },
-    pedido_cancelado:  { label: '❌ Pedido cancelado',  desc: 'Enviada quando cliente digita NÃO' },
-    aviso_pronto:      { label: '🛍️ Pedido pronto',    desc: 'Enviada pelo painel quando pronto' },
-  }
-
   useEffect(() => {
-    fetch(`${API}/api/mensagens`)
-      .then(r => r.json())
-      .then(data => {
-        const arr = data.mensagens || data || []
+    api.get('/api/mensagens')
+      .then(d => {
+        const arr = d || []
         const obj = {}
         arr.forEach(m => { obj[m.chave] = m.texto })
         setMensagens(obj)
@@ -31,14 +29,10 @@ function Bot() {
   async function salvar(chave) {
     setSalvando(s => ({ ...s, [chave]: true }))
     try {
-      await fetch(`${API}/api/mensagens/${chave}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ texto: mensagens[chave] })
-      })
+      await api.put(`/api/mensagens/${chave}`, { texto: mensagens[chave] })
       setSalvo(s => ({ ...s, [chave]: true }))
       setTimeout(() => setSalvo(s => ({ ...s, [chave]: false })), 2000)
-    } catch { alert('Erro ao salvar') }
+    } catch (e) { alert(e.message) }
     setSalvando(s => ({ ...s, [chave]: false }))
   }
 
@@ -52,15 +46,15 @@ function Bot() {
       </p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
-        {Object.entries(info).map(([chave, i]) => (
+        {Object.entries(INFO).map(([chave, info]) => (
           <div key={chave} style={{ background: 'white', borderRadius: 8, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ marginBottom: 4, fontSize: 15 }}>{i.label}</h3>
-            <p style={{ fontSize: 12, color: '#999', marginBottom: 12 }}>{i.desc}</p>
+            <h3 style={{ marginBottom: 4, fontSize: 15 }}>{info.label}</h3>
+            <p style={{ fontSize: 12, color: '#999', marginBottom: 12 }}>{info.desc}</p>
             <textarea
               value={mensagens[chave] || ''}
               onChange={e => setMensagens(m => ({ ...m, [chave]: e.target.value }))}
               rows={5}
-              style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', resize: 'vertical', fontSize: 13, lineHeight: 1.5 }}
+              style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', resize: 'vertical', fontSize: 13, lineHeight: 1.5, boxSizing: 'border-box' }}
             />
             <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
               {['{nome}', '{pedido}', '{total}', '{retirada}'].map(v => (
@@ -81,5 +75,3 @@ function Bot() {
     </div>
   )
 }
-
-export default Bot
