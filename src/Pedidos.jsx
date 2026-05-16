@@ -2,13 +2,179 @@ import { useState, useEffect } from 'react'
 
 const API = 'https://bakery-production-ea1e.up.railway.app'
 
+function ModalHistorico({ onClose }) {
+  const [meses, setMeses]     = useState([])
+  const [sel, setSel]         = useState(null)
+  const [dados, setDados]     = useState([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    fetch(`${API}/api/historico`)
+      .then(r => r.json())
+      .then(d => setMeses(d.meses || d || []))
+      .catch(() => {})
+  }, [])
+
+  async function carregarMes(m) {
+    setSel(m)
+    setLoading(true)
+    try {
+      const r = await fetch(`${API}/api/historico/${m.mes}/${m.ano}`)
+      const d = await r.json()
+      setDados(d.pedidos || d || [])
+    } catch { setDados([]) }
+    setLoading(false)
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+      <div style={{ background: 'white', borderRadius: 10, width: 800, maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h3 style={{ margin: 0 }}>📦 Histórico de Pedidos</h3>
+          <button onClick={onClose} style={{ border: 'none', background: 'none', fontSize: 20, cursor: 'pointer', color: '#999' }}>✕</button>
+        </div>
+        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+          <div style={{ width: 160, borderRight: '1px solid #eee', padding: 16, overflowY: 'auto' }}>
+            <p style={{ fontSize: 12, color: '#888', marginBottom: 12 }}>Selecione o mês</p>
+            {meses.length === 0 && <p style={{ fontSize: 13, color: '#aaa' }}>Nenhum mês arquivado</p>}
+            {meses.map((m, i) => (
+              <button key={i} onClick={() => carregarMes(m)}
+                style={{ display: 'block', width: '100%', padding: '8px 12px', marginBottom: 4, borderRadius: 6, border: 'none', cursor: 'pointer', textAlign: 'left', fontSize: 13, background: sel === m ? '#c8660a' : '#f5f5f5', color: sel === m ? 'white' : '#333' }}>
+                {String(m.mes).padStart(2, '0')}/{m.ano}
+              </button>
+            ))}
+          </div>
+          <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+            {!sel && <p style={{ color: '#aaa', fontSize: 13 }}>← Selecione um mês</p>}
+            {loading && <p style={{ color: '#888', fontSize: 13 }}>Carregando...</p>}
+            {!loading && sel && dados.length === 0 && <p style={{ color: '#aaa', fontSize: 13 }}>Nenhum pedido neste mês.</p>}
+            {!loading && dados.length > 0 && (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: '#f0ece4' }}>
+                    <th style={{ padding: '8px 12px', textAlign: 'left' }}>#</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'left' }}>Cliente</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'left' }}>Pedido</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'left' }}>Total</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'left' }}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dados.map(p => (
+                    <tr key={p.id} style={{ borderTop: '1px solid #eee' }}>
+                      <td style={{ padding: '8px 12px', color: '#999' }}>{p.id}</td>
+                      <td style={{ padding: '8px 12px', fontWeight: 500 }}>{p.nome}</td>
+                      <td style={{ padding: '8px 12px', color: '#555', maxWidth: 200 }}>{p.pedido}</td>
+                      <td style={{ padding: '8px 12px', fontWeight: 600 }}>{p.total || '—'}</td>
+                      <td style={{ padding: '8px 12px' }}>{p.status}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+        <div style={{ padding: '14px 24px', borderTop: '1px solid #eee', textAlign: 'right' }}>
+          <button onClick={onClose} style={{ padding: '8px 20px', borderRadius: 6, border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}>Fechar</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ModalPedidoManual({ onClose, onSalvo }) {
+  const [form, setForm] = useState({ nome: '', telefone: '', pedido: '', total: '', retirada: '', status: 'pendente' })
+  const [salvando, setSalvando] = useState(false)
+  const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }))
+
+  async function salvar() {
+    if (!form.nome || !form.pedido) { alert('Nome e pedido são obrigatórios'); return }
+    setSalvando(true)
+    try {
+      await fetch(`${API}/api/pedidos/manual`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form)
+      })
+      onSalvo()
+      onClose()
+    } catch { alert('Erro ao salvar pedido') }
+    setSalvando(false)
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+      <div style={{ background: 'white', borderRadius: 10, padding: 28, width: 480, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
+        <h3 style={{ marginBottom: 20 }}>➕ Pedido Manual</h3>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Nome *</label>
+            <input value={form.nome} onChange={set('nome')} placeholder="Maria Silva"
+              style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13 }} />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Telefone</label>
+            <input value={form.telefone} onChange={set('telefone')} placeholder="5548999887766"
+              style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13 }} />
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Pedido *</label>
+          <textarea value={form.pedido} onChange={set('pedido')} placeholder="Cuca Farofa G x1, Pão de Trança x2..."
+            rows={3} style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13, resize: 'vertical' }} />
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Total</label>
+            <input value={form.total} onChange={set('total')} placeholder="R$ 50,00"
+              style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13 }} />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Retirada</label>
+            <input value={form.retirada} onChange={set('retirada')} placeholder="Sexta-feira das 10h-12h"
+              style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13 }} />
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, color: '#555' }}>Status</label>
+          <select value={form.status} onChange={set('status')}
+            style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13 }}>
+            <option value="pendente">Pendente</option>
+            <option value="separado">Separado</option>
+            <option value="pronto">Pronto</option>
+            <option value="entregue">Entregue</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+        </div>
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={salvar} disabled={salvando}
+            style={{ flex: 1, padding: '10px', borderRadius: 6, border: 'none', background: '#c8660a', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
+            {salvando ? 'Salvando...' : '💾 Salvar Pedido'}
+          </button>
+          <button onClick={onClose}
+            style={{ padding: '10px 16px', borderRadius: 6, border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}>
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function Pedidos() {
-  const [pedidos, setPedidos]     = useState([])
-  const [loading, setLoading]     = useState(true)
-  const [erro, setErro]           = useState(null)
-  const [busca, setBusca]         = useState('')
-  const [filtroStatus, setFiltro] = useState('')
-  const [aviso, setAviso]         = useState(null) // id do pedido sendo avisado
+  const [pedidos, setPedidos]         = useState([])
+  const [loading, setLoading]         = useState(true)
+  const [erro, setErro]               = useState(null)
+  const [busca, setBusca]             = useState('')
+  const [filtroStatus, setFiltro]     = useState('')
+  const [aviso, setAviso]             = useState(null)
+  const [verHistorico, setHistorico]  = useState(false)
+  const [verManual, setManual]        = useState(false)
 
   function carregarPedidos() {
     setLoading(true)
@@ -51,9 +217,7 @@ function Pedidos() {
         })
       })
       alert(`✅ Mensagem enviada para ${p.nome}!`)
-    } catch {
-      alert('Erro ao enviar mensagem')
-    }
+    } catch { alert('Erro ao enviar mensagem') }
     setAviso(null)
   }
 
@@ -64,9 +228,7 @@ function Pedidos() {
       const data = await r.json()
       alert(`✅ ${data.arquivados || 0} pedidos arquivados!`)
       carregarPedidos()
-    } catch {
-      alert('Erro ao fechar o mês')
-    }
+    } catch { alert('Erro ao fechar o mês') }
   }
 
   function imprimir(p) {
@@ -131,9 +293,9 @@ function Pedidos() {
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
         {[
-          { label: 'Total',     valor: total,      cor: '#2a1f12' },
-          { label: 'Pendentes', valor: pendentes,   cor: '#856404' },
-          { label: 'Prontos',   valor: prontos,     cor: '#004085' },
+          { label: 'Total',     valor: total,       cor: '#2a1f12' },
+          { label: 'Pendentes', valor: pendentes,    cor: '#856404' },
+          { label: 'Prontos',   valor: prontos,      cor: '#004085' },
           { label: 'Receita',   valor: somarTotal(), cor: '#155724' },
         ].map(s => (
           <div key={s.label} style={{ background: 'white', borderRadius: 8, padding: '16px 20px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
@@ -167,6 +329,16 @@ function Pedidos() {
         <button onClick={carregarPedidos}
           style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}>
           🔄 Atualizar
+        </button>
+
+        <button onClick={() => setHistorico(true)}
+          style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}>
+          📦 Histórico
+        </button>
+
+        <button onClick={() => setManual(true)}
+          style={{ padding: '7px 14px', borderRadius: 6, border: 'none', background: '#c8660a', color: 'white', cursor: 'pointer' }}>
+          ➕ Pedido Manual
         </button>
 
         <button onClick={fecharMes}
@@ -206,11 +378,7 @@ function Pedidos() {
                   <select
                     value={p.status}
                     onChange={e => mudarStatus(p.id, e.target.value)}
-                    style={{
-                      padding: '4px 8px', borderRadius: 6,
-                      border: '1px solid #ddd', fontSize: 12, cursor: 'pointer',
-                      ...(corStatus[p.status] || {})
-                    }}>
+                    style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #ddd', fontSize: 12, cursor: 'pointer', ...(corStatus[p.status] || {}) }}>
                     <option value="pendente">pendente</option>
                     <option value="separado">separado</option>
                     <option value="pronto">pronto</option>
@@ -239,6 +407,8 @@ function Pedidos() {
         </table>
       </div>
 
+      {verHistorico && <ModalHistorico onClose={() => setHistorico(false)} />}
+      {verManual    && <ModalPedidoManual onClose={() => setManual(false)} onSalvo={carregarPedidos} />}
     </div>
   )
 }
